@@ -4,6 +4,11 @@
 │   ├── assembler.pl          # Perl script to assemble text-level test cases into machine code
 │   └── sample                # Sample files for the assembler
 ├── design                    # Your Verilog design files go here
+│   ├── cpu.v                
+│   ├── cla.v                
+│   ├── reduction_cla.v                
+│   ├── register_file.v                
+│   └── shifter.v                
 ├── dv
 │   ├── phase1_cpu_tb.v       # Testbench file, use this and modify as needed
 ├── ip
