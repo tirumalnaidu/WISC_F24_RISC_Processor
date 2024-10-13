@@ -1,4 +1,7 @@
+### File Hierarchy
+---
 ```bash
+phase1
 ├── WISC-assembler
 │   ├── README                # Instructions on how to run assembler.pl
 │   ├── assembler.pl          # Perl script to assemble text-level test cases into machine code
@@ -25,3 +28,26 @@
     ├── test1.list
     ├── test2.list
     └── test3.list
+```
+
+### Module Hierarchy
+---
+``` bash
+cpu 
+├── alu                 - yash
+│    ├── addsub
+│    │   └── cla        
+│    ├── paddsub        
+│    │   └── cla
+│    ├── reduction_cla  
+│    │   └── cla
+│    ├── xor            
+│    └── shifter        - DONE
+├── register_file       - DONE
+├── sign_extend         - DONE
+├── control             - tirumal
+├── alu_control         - tirumal
+├── pc_control          - balaji
+├── memory1c_data       - DONE
+└── memory1c_inst       - DONE
+```
