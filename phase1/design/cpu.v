@@ -71,17 +71,7 @@ register_file regfile(.clk(clk),
                       .src_data2()
                       );
 
-control_unit cpu_ctrl();
-
-// EX
-alu alu(.alu_src1(),
-        .alu_src2(),
-        .alu_out(),
-        .alu_op(),
-        .flag()
-        );
-
-alu_control alu_ctrl(
+control_unit cpu_ctrl(
     .opcode(),
     .reg_dst(),
     .reg_write(),
@@ -97,6 +87,15 @@ alu_control alu_ctrl(
     .halt()
 );
 
+// EX
+alu alu(.alu_src1(),
+        .alu_src2(),
+        .alu_out(),
+        .alu_op(),
+        .flag()
+        );
+
+alu_control alu_ctrl();
 
 // M
 memory1c_data #(.DWIDTH(DWIDTH), 
