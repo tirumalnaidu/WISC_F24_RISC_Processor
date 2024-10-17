@@ -18,6 +18,10 @@ module cpu(
 localparam DWIDTH = 16;
 localparam AWIDTH = 16;
 
+// PC
+wire [15:0] pc_cur;
+wire [15:0] pc_nxt;
+
 // Control signals
 wire reg_dst;
 wire reg_write;
@@ -34,6 +38,12 @@ wire halt;
 
 
 // IF
+pc_update pc_up(.clk(clk), 
+                .rst(rst), 
+                .pc_in(pc_nxt), 
+                .pc_out(pc_cur)
+                );
+
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
                 ) imem (.data_out(), 
@@ -97,7 +107,7 @@ alu alu(.alu_src1(),
 
 alu_control alu_ctrl();
 
-// M
+// MEM
 memory1c_data #(.DWIDTH(DWIDTH), 
                 .AWIDTH(AWIDTH)
                 ) dmem (.data_out(),
@@ -110,6 +120,5 @@ memory1c_data #(.DWIDTH(DWIDTH),
                         );
 
 // WB
-
 
 endmodule
