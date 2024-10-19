@@ -45,6 +45,7 @@ wire [15:0] xor_out;
 wire [15:0] paddsub_out;
 wire [15:0] red_out;
 wire [15:0] shifter_out;
+wire [15:0] or_out;        // store the result of LLB/LHB instruction
 wire is_sub;                // select between ADD & SUB
 
 // flag for each instruction that affects flag
@@ -59,6 +60,9 @@ reg [2:0] flag_temp;
 
 // set is_sub for SUB type instruction
 assign is_sub = (opcode == 4'b0001) ? 1'b1 : 1'b0;
+
+// calculate llb  & lhb
+assign or_out = alu_in1 | alu_in2;
 
 // call modules to set results into wires
 addsub_16bit    Adder   (.a_in(alu_in1[15:0]), .b_in(alu_in2[15:0]), .is_sub(is_sub), .sum_out(addsub_out[15:0]), .flag(addsub_flag[2:0]));
@@ -122,10 +126,12 @@ always @(*) begin
 
         4'b1010: begin
             // LLB
+            alu_out_temp = or_out;
         end
 
         4'b1011: begin
             // LHB
+            alu_out_temp = or_out
         end
 
         4'b1100: begin
