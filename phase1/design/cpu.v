@@ -98,10 +98,10 @@ control_unit cpu_ctrl(
 );
 
 // EX
-alu alu(.alu_src1(),
-        .alu_src2(),
+alu_16bit alu(.alu_in1(),
+        .alu_in2(),
+        .opcode(),
         .alu_out(),
-        .alu_op(),
         .flag()
         );
 
