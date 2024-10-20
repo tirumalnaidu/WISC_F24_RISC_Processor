@@ -42,7 +42,7 @@ assign sum_out = 	(condition1|condition2) ? 16'b7fff :
 
 
 assign ovfl = o3;
-assign zero = |sum_out;
+assign zero = ~(|sum_out);
 assign sign = sum_out[15];
 
 assign flag = {sign, ovfl, zero};
