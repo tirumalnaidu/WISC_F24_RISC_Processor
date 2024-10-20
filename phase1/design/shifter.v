@@ -18,20 +18,20 @@ always@(*) begin
     case(shift_val)
         4'b0000: shift_base3 = 6'b000000;  //6'b 00 | 00 | 00 = 0
         4'b0001: shift_base3 = 6'b000001;  //6'b 00 | 00 | 01 = 1
-        4'b0010: shift_base3 = 6'b000010;
+        4'b0010: shift_base3 = 6'b000010;  //6'b 00 | 00 | 10 = 2
         4'b0011: shift_base3 = 6'b000100;  //6'b 00 | 01 | 00 = 3
-        4'b0100: shift_base3 = 6'b000101;
-        4'b0101: shift_base3 = 6'b000110;
-        4'b0110: shift_base3 = 6'b001000;
-        4'b0111: shift_base3 = 6'b001001;
-        4'b1000: shift_base3 = 6'b001010;
+        4'b0100: shift_base3 = 6'b000101;  //6'b 00 | 01 | 01 = 4
+        4'b0101: shift_base3 = 6'b000110;  //6'b 00 | 01 | 10 = 5
+        4'b0110: shift_base3 = 6'b001000;  //6'b 00 | 10 | 00 = 6 
+        4'b0111: shift_base3 = 6'b001001;  //6'b 00 | 10 | 01 = 7
+        4'b1000: shift_base3 = 6'b001010;  //6'b 00 | 10 | 10 = 8
         4'b1001: shift_base3 = 6'b010000;  //6'b 01 | 00 | 00 = 9
-        4'b1010: shift_base3 = 6'b010001;
-        4'b1011: shift_base3 = 6'b010010;
-        4'b1100: shift_base3 = 6'b010100;
-        4'b1101: shift_base3 = 6'b010101;
-        4'b1110: shift_base3 = 6'b010110;
-        4'b1111: shift_base3 = 6'b011000;   //6'b 01 | 10 | 00 = 15
+        4'b1010: shift_base3 = 6'b010001;  //6'b 01 | 00 | 01 = 10
+        4'b1011: shift_base3 = 6'b010010;  //6'b 01 | 00 | 10 = 11
+        4'b1100: shift_base3 = 6'b010100;  //6'b 01 | 01 | 00 = 12
+        4'b1101: shift_base3 = 6'b010101;  //6'b 01 | 01 | 01 = 13
+        4'b1110: shift_base3 = 6'b010110;  //6'b 01 | 01 | 10 = 14
+        4'b1111: shift_base3 = 6'b011000;  //6'b 01 | 10 | 00 = 15
         default: shift_base3 = 6'b000000;
     endcase
 end
@@ -57,7 +57,7 @@ always@(*) begin
                         (~shift_base3[3] & shift_base3[2])? {{3{tmp0[15]}}, tmp0[15:3]}:
                                                             {{6{tmp0[15]}}, tmp0[15:6]};
                 tmp2 =  (~shift_base3[5] & ~shift_base3[4])? tmp1:
-                        (~shift_base3[5] & shift_base3[4])? {{9{tmp1[15]}}, shift_in[15:9]}:
+                        (~shift_base3[5] & shift_base3[4])? {{9{tmp1[15]}}, tmp1[15:9]}:
                                                             {16{tmp1[15]}}; // Impossible case
                 end    
         2'b10:  begin    // ROR
@@ -65,8 +65,8 @@ always@(*) begin
                         (~shift_base3[1] & shift_base3[0])? {shift_in[0], shift_in[15:1]}:
                                                             {shift_in[1:0], shift_in[15:2]};
                 tmp1 =  (~shift_base3[3] & ~shift_base3[2])? tmp0:
-                        (~shift_base3[3] & shift_base3[2])? {tmp0[2:0], tmp[15:3]}:
-                                                            {tmp0[5:0], tmp[15:6]};
+                        (~shift_base3[3] & shift_base3[2])? {tmp0[2:0], tmp0[15:3]}:
+                                                            {tmp0[5:0], tmp0[15:6]};
                 tmp2 =  (~shift_base3[5] & ~shift_base3[4])? tmp1:
                         (~shift_base3[5] & shift_base3[4])? {tmp1[8:0], tmp1[15:9]}:
                                                             tmp1;   // Impossible case
@@ -80,8 +80,8 @@ always@(*) begin
 end
 
 assign shift_out = tmp2;
-assign flag[FLAG_Z] = |tmp2;
-assign flag[FLAG_V] = 1'b0;
-assign flag[FLAG_N] = 1'b0;
+assign flag[`FLAG_Z] = ~(|tmp2);
+assign flag[`FLAG_V] = 1'b0;
+assign flag[`FLAG_N] = 1'b0;
 
 endmodule

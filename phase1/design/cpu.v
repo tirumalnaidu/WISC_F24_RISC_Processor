@@ -40,7 +40,7 @@ pc_update pc_up(.clk(clk),
                 .pc_out(pc_cur)
                 );
 
-wire instr[DWIDTH-1:0]
+wire instr[DWIDTH-1:0];
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
