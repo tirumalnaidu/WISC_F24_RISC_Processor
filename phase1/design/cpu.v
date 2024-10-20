@@ -21,7 +21,7 @@ wire [15:0] pc_nxt;
 
 // Control signals
 wire reg_dst;
-wire reg_write;
+wire write_reg;
 wire alu_src;
 wire mem_read;
 wire mem_write;
@@ -40,7 +40,7 @@ pc_update pc_up(.clk(clk),
                 .pc_out(pc_cur)
                 );
 
-wire instr[DWIDTH-1:0];
+wire [DWIDTH-1:0] instr;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -67,10 +67,10 @@ pc_control pc_ctrl( .c(instr[11:9]),
                     .pc_out(pc_nxt)
                     );
 
-wire [3:0] src1_data, src2_data, dst_data;
+wire [15:0] src1_data, src2_data, dst_data;
 
 // ---------- ID ------------
-wire [2:0] src_reg1, src_reg2, dst_reg;
+wire [3:0] src_reg1, src_reg2, dst_reg;
 
 assign src_reg1 = instr[7:4];
 assign src_reg2 = (mem_write | mem_read) ? instr[11:8] : instr[3:0];
@@ -82,7 +82,7 @@ register_file regfile(
     .src_reg1(src_reg1),
     .src_reg2(src_reg2),
     .dst_reg(dst_reg),
-    .write_reg(reg_write),
+    .write_reg(write_reg),
     .dst_data(dst_data),
     .src_data1(src1_data),
     .src_data2(src2_data)
@@ -91,7 +91,7 @@ register_file regfile(
 control_unit cpu_ctrl(
     .opcode(instr[15:12]),
     .reg_dst(reg_dst),
-    .reg_write(reg_write),
+    .reg_write(write_reg),
     .alu_src(alu_src),
     .mem_read(mem_read),
     .mem_write(mem_write),
@@ -145,7 +145,7 @@ dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(en[2]), .clk(clk), .rst(rst));
 wire [15:0] mem_data;
 memory1c_data #(.DWIDTH(DWIDTH), 
                 .AWIDTH(AWIDTH)
-                ) dmem (.data_out(mem_data),
+                ) data_mem (.data_out(mem_data),
                         .data_in(src2_data),
                         .addr(alu_out),
                         .enable(mem_read),

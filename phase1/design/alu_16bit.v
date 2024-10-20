@@ -69,7 +69,7 @@ addsub_16bit    Adder   (.a_in(alu_in1[15:0]), .b_in(alu_in2[15:0]), .is_sub(is_
 xor_16bit       XOR     (.a_in(alu_in1[15:0]), .b_in(alu_in2[15:0]), .xor_out(xor_out[15:0]), .flag(xor_flag[2:0]));
 paddsub_16bit   Paddsub (.a_in(alu_in1[15:0]),  .b_in(alu_in2[15:0]),  .sum_out(paddsub_out[15:0]));
 red_16bit       Red     (.a_in(alu_in1[15:0]), .b_in(alu_in2[15:0]), .sum_out(red_out[15:0]));
-shifter         Shifter (.shift_in(alu_in1[15:0]), .shift_val(alu_in2[15:0]), .mode(opcode[1:0]), .shift_out(shifter_out), .flag(shifter_flag[2:0]));
+shifter         Shifter (.shift_in(alu_in1[15:0]), .shift_val(alu_in2[3:0]), .mode(opcode[1:0]), .shift_out(shifter_out), .flag(shifter_flag[2:0]));
 
 // always block for alu_out
 always @(*) begin
