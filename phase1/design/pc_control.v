@@ -1,4 +1,4 @@
-`include "flags.vh"
+// `include "flags.vh"
 
 module pc_control(
 /*INPUT*/

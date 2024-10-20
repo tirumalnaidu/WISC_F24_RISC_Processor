@@ -130,8 +130,8 @@ alu_16bit alu(.alu_in1(alu_in1),
         .flag(flag)  // {sign, ovfl, zero};
         );
 
-input [2:0] en;
-input [2:0] flag_reg_out;
+wire [2:0] en;
+wire [2:0] flag_reg_out;
 
 // flag register for pc_control
 dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(en[0]), .clk(clk), .rst(rst));

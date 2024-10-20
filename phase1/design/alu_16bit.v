@@ -2,11 +2,11 @@
 // opcode is the selection signal
 
 
-`include "addsub_16bit.v"       // for ADD & SUB
-`include "red_16bit.v"          // for RED
-`include "paddsub_16bit.v"      // for PADDSUB
-`include "xor_16bit.v"          // for XOR
-`include "shifter.v"
+// `include "addsub_16bit.v"       // for ADD & SUB
+// `include "red_16bit.v"          // for RED
+// `include "paddsub_16bit.v"      // for PADDSUB
+// `include "xor_16bit.v"          // for XOR
+// `include "shifter.v"
 
 module alu_16bit (
     input [15:0] alu_in1,       // 16-bit ALU input-1
@@ -131,7 +131,7 @@ always @(*) begin
 
         4'b1011: begin
             // LHB
-            alu_out_temp = or_out
+            alu_out_temp = or_out;
         end
 
         4'b1100: begin
@@ -148,7 +148,7 @@ always @(*) begin
             // HLT
         end
         
-        default: alu_out_temp = 16'b0000_0000_0000_0000;
+        default: alu_out_temp = 16'h0000;
         
     endcase
 end
@@ -183,7 +183,7 @@ assign alu_out = alu_out_temp;
 
 
 // asign flag
-assign flag =  flag_temp   
+assign flag =  flag_temp;   
 
 
 endmodule

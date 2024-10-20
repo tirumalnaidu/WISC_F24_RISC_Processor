@@ -1,4 +1,4 @@
-`include "cla_adder_4bit.v"
+// `include "cla_adder_4bit.v"
                            
 module paddsub_16bit (
     input [15:0] 	a_in,

@@ -1,4 +1,4 @@
-`include "flags.vh"
+// `include "flags.vh"
 
 module shifter(
     input [15:0] shift_in,
