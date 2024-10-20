@@ -34,6 +34,7 @@ wire pcs;
 wire halt;
 
 // ---------- IF ------------
+assign pc = pc_cur;
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
                 .pc_in(pc_nxt), 
