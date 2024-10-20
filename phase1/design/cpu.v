@@ -47,7 +47,7 @@ memory1c_instr #(   .DWIDTH(DWIDTH),
                 ) imem (.data_out(instr), 
                         .data_in(), 
                         .addr(pc_cur), 
-                        .enable(), 
+                        .enable(1'b1), 
                         .wr(), 
                         .clk(clk), 
                         .rst(rst)
