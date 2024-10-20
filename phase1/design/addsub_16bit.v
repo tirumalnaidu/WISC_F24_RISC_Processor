@@ -24,7 +24,7 @@ wire zero, ovfl, sign;
 wire condition1 = out[15] & ~a_in[15] & ~b_in[15] & ~is_sub;
 wire condition2 = out[15] & ~a_in[15] & b_in[15] & is_sub;
 wire condition3 = ~out[15] & a_in[15] & b_in[15] & ~is_sub;
-wire condition4 = ~out[15] & a_in[15] & ~b_in[15] & is_sub
+wire condition4 = ~out[15] & a_in[15] & ~b_in[15] & is_sub;
 
 assign b = (is_sub)? ~b_in: b_in;
 
@@ -37,8 +37,8 @@ cla_adder_4bit cla3(.a_in(a_in[15:12]), .b_in(b[15:12]), .carry_in(carry[2]), .a
 // positive overflow : 
 // negative overflow
 
-assign sum_out = 	(condition1|condition2) ? 16'b7fff :
-					(condition3 |condition4) ? 16'b8000 : out;				
+assign sum_out = 	(condition1|condition2) ? 16'h7fff :
+					(condition3 |condition4) ? 16'h8000 : out;				
 
 
 assign ovfl = o3;
