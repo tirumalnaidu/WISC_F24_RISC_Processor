@@ -13,6 +13,8 @@ input [15:0]	target,	// 16-bit "rs" reg val [BR-Type instruction Support]
 // Enable & select signals
 input 			branch,	// 1-bit branch flag
 input [1:0]		branch_type,
+input			pcs,
+input			hlt,
 
 input [15:0] 	pc_in,
 
@@ -80,6 +82,6 @@ always @(*) begin
 		2'b11: pc_next = pc_in;									// HLT
 	endcase
 end
-assign pc_out = pc_next;
+assign pc_out = (branch | hlt | pcs)? pc_next: pc_update;
 
 endmodule
