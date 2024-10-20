@@ -48,20 +48,22 @@ memory1c_instr #(   .DWIDTH(DWIDTH),
                         .data_in(), 
                         .addr(pc_cur), 
                         .enable(1'b1), 
-                        .wr(), 
+                        .wr(1'b0), 
                         .clk(clk), 
                         .rst(rst)
                         );
 
 // Glue Logic for pc_control
 wire [1:0] branch_type;
-assign branch_type = (hlt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00;
+assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00;
 
 pc_control pc_ctrl( .c(instr[11:9]),
                     .f(flag_reg_out),
                     .i(instr[8:0]),
                     .target(),
                     .branch(branch),
+                    .pcs(pcs),
+                    .hlt(halt),
                     .branch_type(branch_type),
                     .pc_in(pc_cur),
                     .pc_out(pc_nxt)
@@ -100,7 +102,7 @@ control_unit cpu_ctrl(
     .hlb_en(hlb_en),
     .branch(branch),
     .branchr(branchr),
-    .pcs(),
+    .pcs(pcs),
     .halt(halt)
 );
 
