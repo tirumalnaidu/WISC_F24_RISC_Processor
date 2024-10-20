@@ -75,7 +75,7 @@ wire [15:0] src1_data, src2_data, dst_data;
 // ---------- ID ------------
 wire [3:0] src_reg1, src_reg2, dst_reg;
 
-assign src_reg1 = instr[7:4];
+assign src_reg1 = (llb_en | hlb_en) ? instr[11:8] : instr[7:4];
 assign src_reg2 = (mem_write | mem_read) ? instr[11:8] : instr[3:0];
 assign dst_reg = instr[11:8];
 
