@@ -124,7 +124,7 @@ assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, instr[3:0]} << 1) :
                         (hlb_en) ? {instr[7:0], {8{1'b0}}} : 
                         {{12{1'b0}},instr[3:0]}; // for sll, srl, ror
 
-assign alu_in1 = src1_data;
+assign alu_in1 = (mem_read | mem_write) ? (src1_data & 16'hFFFE) : src1_data;
 assign alu_in2 = alu_src ? sign_ext_imm : src2_data;
 
 alu_16bit alu(.alu_in1(alu_in1),
@@ -147,12 +147,14 @@ dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(flag_en[2]), .clk(clk), .rst(rst)
 
 // ---------- MEM ------------
 wire [15:0] mem_data;
+wire mem_enable = mem_write | mem_read;
+
 memory1c_data #(.DWIDTH(DWIDTH), 
                 .AWIDTH(AWIDTH)
                 ) data_mem (.data_out(mem_data),
                         .data_in(src2_data),
                         .addr(alu_out),
-                        .enable(mem_read),
+                        .enable(mem_enable),
                         .wr(mem_write),
                         .clk(clk),
                         .rst(rst)
