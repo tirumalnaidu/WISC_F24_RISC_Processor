@@ -61,7 +61,7 @@ assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00
 pc_control pc_ctrl( .c(instr[11:9]),
                     .f(flag_reg_out),
                     .i(instr[8:0]),
-                    .target(),
+                    .target(src1_data),
                     .branch(branch),
                     .pcs(pcs),
                     .hlt(halt),
@@ -104,7 +104,8 @@ control_unit cpu_ctrl(
     .branch(branch),
     .branchr(branchr),
     .pcs(pcs),
-    .halt(halt)
+    .halt(halt),
+    .flag_en(flag_en)
 );
 
 assign hlt = halt;
@@ -133,13 +134,13 @@ alu_16bit alu(.alu_in1(alu_in1),
         .flag(flag)  // {sign, ovfl, zero};
         );
 
-wire [2:0] en;
+wire [2:0] flag_en;
 wire [2:0] flag_reg_out;
 
 // flag register for pc_control
-dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(en[0]), .clk(clk), .rst(rst));
-dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(en[1]), .clk(clk), .rst(rst));
-dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(en[2]), .clk(clk), .rst(rst));
+dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(flag_en[0]), .clk(clk), .rst(rst));
+dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(flag_en[1]), .clk(clk), .rst(rst));
+dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(flag_en[2]), .clk(clk), .rst(rst));
 
 // ---------------------------
 

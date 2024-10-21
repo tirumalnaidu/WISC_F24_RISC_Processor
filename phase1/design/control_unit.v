@@ -11,12 +11,23 @@ module control_unit(
     output branch,
     output branchr,
     output pcs,
-    output halt
+    output halt,
+    output [2:0] flag_en
 );
 
 reg opcode_reg, reg_dst_reg, alu_src_reg, mem_read_reg, mem_write_reg, mem_to_reg_reg, reg_write_reg,
   llb_en_reg, hlb_en_reg, branch_reg, branchr_reg, pcs_reg, halt_reg;
   
+reg [2:0] flag_en_reg;
+
+always @(*) begin
+     case(opcode)
+          4'b0000, 4'b0001:                       flag_en_reg = 3'b111;
+          4'b0010, 4'b0100, 4'b0101, 4'b0110:     flag_en_reg = 3'b001;
+          default:                                flag_en_reg = 3'b000;
+     endcase
+end
+
 always @(*) begin
   
     casex (opcode)       
@@ -210,5 +221,6 @@ end
     assign  branchr = branchr_reg;
     assign  pcs = pcs_reg;
     assign  halt = halt_reg;
+    assign flag_en = flag_en_reg;
 
 endmodule
