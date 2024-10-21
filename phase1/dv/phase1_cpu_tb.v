@@ -58,6 +58,8 @@ module phase1_cpu_tb ();
   wire [15:0] Inst = DUT.instr;  // The 16 bit instruction word.
   wire RegWrite = DUT.write_reg;  // Whether or not register file is being written
   wire [3:0] WriteRegister = DUT.dst_reg;  // What 4-bit register number is written
+  wire [15:0] Read1Data = DUT.alu_in1;  // 16-bit Data being written to the registerfile.
+  wire [15:0] Read2Data = DUT.alu_in2;  // 16-bit Data being written to the registerfile.
   wire [15:0] WriteData = DUT.dst_data;  // 16-bit Data being written to the registerfile.
   wire MemWrite = (DUT.data_mem.enable & DUT.data_mem.wr);  // Memory is being Written
   wire MemRead = DUT.data_mem.data_out;  // Memory is being Read
@@ -72,8 +74,8 @@ module phase1_cpu_tb ();
       if (Halt || RegWrite || MemWrite) begin
         inst_count = inst_count + 1;
       end
-      $fdisplay(sim_log_file, "SIMLOG:: Cycle %d PC: %8x I: %8x R: %d %3d %8x M: %d %d %8x %8x",
-                cycle_count, PC, Inst, RegWrite, WriteRegister, WriteData, MemRead, MemWrite,
+      $fdisplay(sim_log_file, "SIMLOG:: Cycle %d PC: %8x I: %8x R: %d %3d %8x %8x %8x M: %d %d %8x %8x",
+                cycle_count, PC, Inst, RegWrite, WriteRegister, Read1Data, Read2Data, WriteData, MemRead, MemWrite,
                 MemAddress, MemData);
       if (RegWrite) begin
         if (MemRead) begin
