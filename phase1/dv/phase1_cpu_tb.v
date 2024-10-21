@@ -41,12 +41,12 @@ module phase1_cpu_tb ();
   end
 
   initial begin
-    clk = 1;
-    forever #half_cycle clk = ~clk;
+    clk <= 1;
+    forever #half_cycle clk <= ~clk;
   end
 
   always @(posedge clk) begin
-    cycle_count = cycle_count + 1;
+    cycle_count <= cycle_count + 1;
     if (cycle_count > 100000) begin
       $display("hmm....more than 100000 cycles of simulation...error?\n");
       $finish;
