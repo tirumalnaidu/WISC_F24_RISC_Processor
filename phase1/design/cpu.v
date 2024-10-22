@@ -19,6 +19,26 @@ localparam AWIDTH = 16;
 wire [15:0] pc_cur;
 wire [15:0] pc_nxt;
 
+// IF
+wire [DWIDTH-1:0] instr;
+wire [1:0] branch_type;
+
+// ID
+wire [3:0] src_reg1, src_reg2, dst_reg;
+wire [15:0] src1_data, src2_data;
+
+// EX
+wire [2:0] flag, flag_en, flag_reg_out;
+wire [15:0] alu_in1, alu_in2, alu_out;
+wire [15:0] sign_ext_imm;
+
+// MEM
+wire [15:0] mem_data;
+wire mem_enable;
+
+// WB
+wire [25:0] dst_data;
+
 // Control signals
 wire reg_dst;
 wire write_reg;
@@ -41,7 +61,6 @@ pc_update pc_up(.clk(clk),
                 .pc_out(pc_cur)
                 );
 
-wire [DWIDTH-1:0] instr;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -55,7 +74,6 @@ memory1c_instr #(   .DWIDTH(DWIDTH),
                         );
 
 // Glue Logic for pc_control
-wire [1:0] branch_type;
 assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00;
 
 pc_control pc_ctrl( .c(instr[11:9]),
@@ -70,10 +88,8 @@ pc_control pc_ctrl( .c(instr[11:9]),
                     .pc_out(pc_nxt)
                     );
 
-wire [15:0] src1_data, src2_data, dst_data;
 
 // ---------- ID ------------
-wire [3:0] src_reg1, src_reg2, dst_reg;
 
 assign src_reg1 = (llb_en | hlb_en) ? instr[11:8] : instr[7:4];
 assign src_reg2 = (mem_write | mem_read) ? instr[11:8] : instr[3:0];
@@ -113,10 +129,6 @@ assign hlt = halt;
 
 
 // ---------- EX ------------
-wire [2:0] flag;
-wire [15:0] alu_in1, alu_in2, alu_out;
-wire [15:0] sign_ext_imm;
-
 // for mem read or write, addr = (Reg[ssss] & 0xFFFE) + (sign-extend(oooo) << 1).
 // three diff ext - (lw, sw), (llb, hlb), (sll, srl, ror)
 assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, instr[3:0]} << 1) : 
@@ -134,9 +146,6 @@ alu_16bit alu(.alu_in1(alu_in1),
         .flag(flag)  // {sign, ovfl, zero};
         );
 
-wire [2:0] flag_en;
-wire [2:0] flag_reg_out;
-
 // flag register for pc_control
 dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(flag_en[0]), .clk(clk), .rst(rst));
 dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(flag_en[1]), .clk(clk), .rst(rst));
@@ -146,8 +155,7 @@ dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(flag_en[2]), .clk(clk), .rst(rst)
 
 
 // ---------- MEM ------------
-wire [15:0] mem_data;
-wire mem_enable = mem_write | mem_read;
+assign mem_enable = mem_write | mem_read;
 
 memory1c_data #(.DWIDTH(DWIDTH), 
                 .AWIDTH(AWIDTH)
