@@ -37,7 +37,7 @@ wire [15:0] mem_data;
 wire mem_enable;
 
 // WB
-wire [25:0] dst_data;
+wire [15:0] dst_data;
 
 // Control signals
 wire reg_dst;
