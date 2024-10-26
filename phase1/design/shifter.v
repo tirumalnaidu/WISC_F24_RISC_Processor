@@ -10,9 +10,11 @@ module shifter(
 
 // Conversion from 4'b(Base-2) to 6'b(Base-3)
 reg [5:0] shift_base3;
-reg [15:0] tmp0;
-reg [15:0] tmp1;
-reg [15:0] tmp2;
+
+wire [15:0] sll_out;
+wire [15:0] sra_out;
+wire [15:0] ror_out;
+reg [15:0] temp_out;
 
 always@(*) begin
     case(shift_val)
@@ -36,6 +38,20 @@ always@(*) begin
     endcase
 end
 
+sll_func sll(.in(shift_in), .sel(shift_base3), .out(sll_out));
+sra_func sra(.in(shift_in), .sel(shift_base3), .out(sra_out));
+ror_func ror(.in(shift_in), .sel(shift_base3), .out(ror_out));
+
+always @ (*) begin
+        case(mode)
+        2'b00: temp_out = sll_out;
+        2'b01: temp_out = sra_out;
+        2'b10: temp_out = ror_out;
+        default: temp_out = 16'h0000;
+        endcase
+end
+
+/*
 always@(*) begin
     case(mode)
         2'b00:  begin   // SLL
@@ -46,7 +62,7 @@ always@(*) begin
                         (~shift_base3[3] & shift_base3[2])? {tmp0[12:0], 3'b0}: 
                                                             {tmp0[9:0], 6'b0};
                 tmp2 =  (~shift_base3[5] & ~shift_base3[4])? tmp1:
-                        (~shift_base3[5] & shift_base3[4])? {tmp1[7:0], 9'b0}: 
+                        (~shift_base3[5] & shift_base3[4])? {tmp1[6:0], 9'b0}: 
                                                             16'h0000;    // Impossible case     
                 end
         2'b01:  begin   // SRA
@@ -78,9 +94,10 @@ always@(*) begin
                     end
     endcase
 end
+*/
 
-assign shift_out = tmp2;
-assign flag[`FLAG_Z] = ~(|tmp2);
+assign shift_out = temp_out;
+assign flag[`FLAG_Z] = ~(|temp_out);
 assign flag[`FLAG_V] = 1'b0;
 assign flag[`FLAG_N] = 1'b0;
 
