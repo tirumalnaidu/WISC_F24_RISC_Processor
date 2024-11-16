@@ -147,20 +147,6 @@ control_unit cpu_ctrl(
     .flag_en(flag_en)
 );
 
-// TODO hlt signal to be given at the WB stage only
-// assign hlt = halt;
-// ---------------------------
-
-// ----------- ID/EX Pipeline -------------
-// Data signals
-wire [15:0] id_ex_instr;
-
-// Control signals
-
-
-// ----------------------------------------
-
-// ---------- EX ------------
 // for mem read or write, addr = (Reg[ssss] & 0xFFFE) + (sign-extend(oooo) << 1).
 // three diff ext - (lw, sw), (llb, hlb), (sll, srl, ror)
 assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, instr[3:0]} << 1) : 
@@ -168,6 +154,31 @@ assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, instr[3:0]} << 1) :
                         (hlb_en) ? {instr[7:0], {8{1'b0}}} : 
                         {{12{1'b0}},instr[3:0]}; // for sll, srl, ror
 
+// TODO hlt signal to be given at the WB stage only
+// assign hlt = halt;
+// ---------------------------
+
+// ----------- ID/EX Pipeline -------------
+// Data signals
+wire [3:0] id_ex_rs;
+wire [3:0] id_ex_rt;
+wire [3:0] id_ex_rd;
+wire [15:0] id_ex_sign_ext_imm;
+wire [15:0] id_ex_src1_data;
+wire [15:0] id_ex_src2_data;
+
+// Control signals
+wire id_ex_alu_out;
+wire id_ex_mem_read;
+wire id_ex_mem_write;
+wire id_ex_mem_to_reg;
+wire id_ex_pcs;
+wire id_ex_halt;
+wire [2:0] flag_en;
+
+// ----------------------------------------
+
+// ---------- EX ------------
 assign alu_in1 = (mem_read | mem_write) ? (src1_data & 16'hFFFE) : src1_data;
 assign alu_in2 = alu_src ? sign_ext_imm : src2_data;
 
