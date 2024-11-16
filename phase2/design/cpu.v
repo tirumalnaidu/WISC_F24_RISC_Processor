@@ -1,4 +1,4 @@
-// WISC-FA24 Processor
+// WISC-FA24 Processor Phase-2
 // Authors: 
 //          - Tirumal Naidu
 //          - Yash Deshpande
@@ -14,6 +14,7 @@ module cpu(
 // Local parameters
 localparam DWIDTH = 16;
 localparam AWIDTH = 16;
+localparam TWO = 16'h0002;
 
 // PC
 wire [15:0] pc_cur;
@@ -54,18 +55,28 @@ wire pcs;
 wire halt;
 
 // ---------- IF ------------
-assign pc = pc_cur;
+wire [15:0] pc_hlt;
+wire [15:0] pc_plus_two;
+wire [3:0] opcode;
+wire if_stage_hlt;
+
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
                 .pc_in(pc_nxt), 
                 .pc_out(pc_cur)
                 );
 
+assign opcode = instr[15:12];
+assign if_stage_hlt = &opcode;
+assign pc_hlt = pc;
+addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
+
+assign pc_nxt = (/*from ctrl_hazard*/)? pc_hazard: (if_stage_hlt)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
                 ) imem (.data_out(instr), 
-                        .data_in(), 
+                        .data_in(/*unconnected*/), 
                         .addr(pc_cur), 
                         .enable(1'b1), 
                         .wr(1'b0), 
@@ -73,27 +84,39 @@ memory1c_instr #(   .DWIDTH(DWIDTH),
                         .rst(rst)
                         );
 
+assign pc = pc_cur; // Current PC as output
+
+// --------------------------------------
+
+// ---------- IF/ID Pipeline ------------
+// Sends the PC value
+// Sends the instruction from imem to ID
+wire [15:0] if_id_instr;
+wire [15:0] if_id_pc;
+
+// TODO: reset might have to be changed
+if_id_pipe IFID(.clk(clk), .rst(rst), .in_instr(instr), .in_pc(pc_nxt), .out_instr(if_id_instr), .out_pc(if_id_pc));
+// --------------------------------------
+
+// ---------- ID ------------
 // Glue Logic for pc_control
 assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00;
 
-pc_control pc_ctrl( .c(instr[11:9]),
+pc_control pc_ctrl( .c(if_id_instr[11:9]),
                     .f(flag_reg_out),
-                    .i(instr[8:0]),
+                    .i(if_id_instr[8:0]),
                     .target(src1_data),
                     .branch(branch),
                     .pcs(pcs),
                     .hlt(halt),
                     .branch_type(branch_type),
                     .pc_in(pc_cur),
-                    .pc_out(pc_nxt)
+                    .pc_out(if_id_pc)
                     );
 
-
-// ---------- ID ------------
-
-assign src_reg1 = (llb_en | hlb_en) ? instr[11:8] : instr[7:4];
-assign src_reg2 = (mem_write | mem_read) ? instr[11:8] : instr[3:0];
-assign dst_reg = instr[11:8];
+assign src_reg1 = (llb_en | hlb_en) ? if_id_instr[11:8] : if_id_instr[7:4];
+assign src_reg2 = (mem_write | mem_read) ? if_id_instr[11:8] : if_id_instr[3:0];
+assign dst_reg = if_id_instr[11:8];
 
 register_file regfile(
     .clk(clk),
@@ -108,7 +131,7 @@ register_file regfile(
 );
  
 control_unit cpu_ctrl(
-    .opcode(instr[15:12]),
+    .opcode(if_id_instr[15:12]),
     .reg_dst(reg_dst),
     .reg_write(write_reg),
     .alu_src(alu_src),
@@ -124,9 +147,18 @@ control_unit cpu_ctrl(
     .flag_en(flag_en)
 );
 
-assign hlt = halt;
+// TODO hlt signal to be given at the WB stage only
+// assign hlt = halt;
 // ---------------------------
 
+// ----------- ID/EX Pipeline -------------
+// Data signals
+wire [15:0] id_ex_instr;
+
+// Control signals
+
+
+// ----------------------------------------
 
 // ---------- EX ------------
 // for mem read or write, addr = (Reg[ssss] & 0xFFFE) + (sign-extend(oooo) << 1).
