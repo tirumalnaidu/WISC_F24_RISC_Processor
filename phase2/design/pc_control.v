@@ -50,7 +50,7 @@ wire [15:0] i_shft;
 wire [15:0] pc_B;
 wire [15:0] pc_BR;
 wire [15:0] pc_HLT;
-wire [15:0] pc_update;
+// wire [15:0] pc_update;
 
 always @ (*) begin
 	case(c)
@@ -70,18 +70,18 @@ end
 assign i_ext = {{7{i[8]}}, i};	// get the 16-bit sign extended immediate value
 assign i_shft = i_ext<<1;
 
-addsub_16bit add0(.a_in(pc_in), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_update), .flag(/*unconnected*/));
-addsub_16bit add1(.a_in(pc_update), .b_in(i_shft), .is_sub(1'b0), .sum_out(pc_B), .flag(/*unconnected*/));
+//addsub_16bit add0(.a_in(pc_in), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_update), .flag(/*unconnected*/));
+addsub_16bit add1(.a_in(pc_in), .b_in(i_shft), .is_sub(1'b0), .sum_out(pc_B), .flag(/*unconnected*/));
 assign pc_BR = target;
 
 always @(*) begin
 	case(branch_type)
-		2'b00: pc_next = (branch & br_taken)? pc_B: pc_update;	// B
-		2'b01: pc_next = (branch & br_taken)? pc_BR: pc_update;	// BR
-		2'b10: pc_next = pc_update;								// PCS
-		2'b11: pc_next = pc_in;									// HLT
+		2'b00: pc_next = (branch & br_taken)? pc_B: pc_in;	// B
+		2'b01: pc_next = (branch & br_taken)? pc_BR: pc_in;	// BR
+		2'b10: pc_next = pc_in;								// PCS
+		2'b11: pc_next = pc_in;								// HLT
 	endcase
 end
-assign pc_out = (branch | hlt | pcs)? pc_next: pc_update;
+assign pc_out = (branch | hlt | pcs)? pc_next: pc_in;
 
 endmodule
