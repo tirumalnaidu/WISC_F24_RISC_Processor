@@ -174,7 +174,7 @@ wire id_ex_mem_write;
 wire id_ex_mem_to_reg;
 wire id_ex_pcs;
 wire id_ex_halt;
-wire [2:0] flag_en;
+wire [2:0] id_ex_flag_en;
 
 // ----------------------------------------
 
