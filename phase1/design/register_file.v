@@ -18,7 +18,9 @@ read_decoder_4_16 rdecode_src1(.reg_id(src_reg1), .wordline(rden1));
 read_decoder_4_16 rdecode_src2(.reg_id(src_reg2), .wordline(rden2));
 write_decoder_4_16 wdecode_dest(.reg_id(dst_reg), .write_reg(write_reg), .wordline(wren));
 
-register reg00(.clk(clk), .rst(rst), .d(dst_data), .write_reg(wren[0]), .rden1(rden1[0]), .rden2(rden2[0]), .bitline1(src_data1), .bitline2(src_data2));
+// Register-0 is alyways $zero and can't be overwritten
+// Hence write_reg=0; d=0
+register reg00(.clk(clk), .rst(rst), .d(15'h0000), .write_reg(1'b0), .rden1(rden1[0]), .rden2(rden2[0]), .bitline1(src_data1), .bitline2(src_data2));
 register reg01(.clk(clk), .rst(rst), .d(dst_data), .write_reg(wren[1]), .rden1(rden1[1]), .rden2(rden2[1]), .bitline1(src_data1), .bitline2(src_data2));
 register reg02(.clk(clk), .rst(rst), .d(dst_data), .write_reg(wren[2]), .rden1(rden1[2]), .rden2(rden2[2]), .bitline1(src_data1), .bitline2(src_data2));
 register reg03(.clk(clk), .rst(rst), .d(dst_data), .write_reg(wren[3]), .rden1(rden1[3]), .rden2(rden2[3]), .bitline1(src_data1), .bitline2(src_data2));

@@ -171,7 +171,7 @@ memory1c_data #(.DWIDTH(DWIDTH),
 
 
 // ---------- WB ------------
-assign dst_data = mem_to_reg ? mem_data : alu_out;
+assign dst_data = (pcs)? pc_nxt: (mem_to_reg)? mem_data: alu_out;
 // ---------------------------
 
 endmodule
