@@ -4,6 +4,13 @@
 //          - Yash Deshpande
 //          - Balaji Adithya
 
+// forwarding - done
+// hazard - detection; resolve?
+// pc-update -> normal case and hlt case -> done
+//           -> ctrl hazard? 
+// stalls - ? (into pipeline - enables)
+// flush - ? (into pipeline - resets)
+
 module cpu(
     input clk,
     input rst,
