@@ -4,6 +4,7 @@ module write_decoder_4_16(
 	output [15:0] 	wordline
 );
 
+// TODO: Can improve by just making write_reg & (conditions)
 // Output generated only if write_reg is 1. Else send out all zeros
 
 assign wordline[0] 	= (~write_reg)? 1'b0: ~reg_id[3] & ~reg_id[2] & ~reg_id[1] & ~reg_id[0];
