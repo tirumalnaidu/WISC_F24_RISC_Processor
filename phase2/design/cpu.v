@@ -71,7 +71,7 @@ assign if_stage_hlt = &opcode;
 assign pc_hlt = pc;
 addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
 
-assign pc_nxt = (/*from ctrl_hazard*/)? pc_hazard: (if_stage_hlt)? pc_hlt: pc_plus_two;
+// assign pc_nxt = (/*from ctrl_hazard*/)? pc_hazard: (if_stage_hlt)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -89,13 +89,20 @@ assign pc = pc_cur; // Current PC as output
 // --------------------------------------
 
 // ---------- IF/ID Pipeline ------------
-// Sends the PC value
-// Sends the instruction from imem to ID
-wire [15:0] if_id_instr;
-wire [15:0] if_id_pc;
 
-// TODO: reset might have to be changed
-if_id_pipe IFID(.clk(clk), .rst(rst), .in_instr(instr), .in_pc(pc_nxt), .out_instr(if_id_instr), .out_pc(if_id_pc));
+wire [15:0] if_id_instr;
+wire [15:0] if_id_pc_nxt;
+
+if_id_pipe  if_id_pipe_inst (
+    .clk(clk),
+    .rst(rst), //TODO: flush
+    .en(), //TODO: stall 
+    .in_instr(instr),
+    .in_pc_next(pc_nxt),
+    .out_instr(if_id_instr),
+    .out_pc_next(if_id_pc_nxt)
+  );
+
 // --------------------------------------
 
 // ---------- ID ------------
@@ -110,8 +117,8 @@ pc_control pc_ctrl( .c(if_id_instr[11:9]),
                     .pcs(pcs),
                     .hlt(halt),
                     .branch_type(branch_type),
-                    .pc_in(pc_cur),
-                    .pc_out(if_id_pc)
+                    .pc_in(pc_cur), // TODO: ???
+                    .pc_out(if_id_pc) // TODO: ???
                     );
 
 assign src_reg1 = (llb_en | hlb_en) ? if_id_instr[11:8] : if_id_instr[7:4];
@@ -149,72 +156,154 @@ control_unit cpu_ctrl(
 
 // for mem read or write, addr = (Reg[ssss] & 0xFFFE) + (sign-extend(oooo) << 1).
 // three diff ext - (lw, sw), (llb, hlb), (sll, srl, ror)
-assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, instr[3:0]} << 1) : 
-                        (llb_en) ? {{8{1'b0}},instr[7:0]} : 
-                        (hlb_en) ? {instr[7:0], {8{1'b0}}} : 
-                        {{12{1'b0}},instr[3:0]}; // for sll, srl, ror
+assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, if_id_instr[3:0]} << 1) : 
+                        (llb_en) ? {{8{1'b0}},if_id_instr[7:0]} : 
+                        (hlb_en) ? {if_id_instr[7:0], {8{1'b0}}} : 
+                        {{12{1'b0}},if_id_instr[3:0]}; // for sll, srl, ror
 
 // TODO hlt signal to be given at the WB stage only
 // assign hlt = halt;
 // ---------------------------
 
 // ----------- ID/EX Pipeline -------------
-// Data signals
-wire [3:0] id_ex_rs;
-wire [3:0] id_ex_rt;
-wire [3:0] id_ex_rd;
-wire [15:0] id_ex_sign_ext_imm;
-wire [15:0] id_ex_src1_data;
-wire [15:0] id_ex_src2_data;
-
-// Control signals
-wire id_ex_alu_out;
-wire id_ex_mem_read;
-wire id_ex_mem_write;
-wire id_ex_mem_to_reg;
-wire id_ex_pcs;
-wire id_ex_halt;
+wire id_ex_mem_read, id_ex_mem_write, id_ex_mem_to_reg, id_ex_write_reg, id_ex_alu_src, id_ex_pcs, id_ex_halt;
+wire [15:0] id_ex_pc_nxt, id_ex_sign_ext_imm, id_ex_src1_data, id_ex_src2_data;
+wire [3:0] id_ex_opcode, id_ex_src1_reg, id_ex_src2_reg, id_ex_dst_reg;    
 wire [2:0] id_ex_flag_en;
+
+id_ex_pipe  id_ex_pipe_inst (
+    .clk(clk),
+    .rst(rst), //TODO: flush
+    .en(en), //TODO: stall
+    .in_mem_read(mem_read),
+    .in_mem_write(mem_write),
+    .in_mem_to_reg(mem_to_reg),
+    .in_write_reg(write_reg),
+    .in_alu_src(alu_src),
+    .in_pcs(pcs),
+    .in_halt(halt),
+    .in_pc_nxt(if_id_pc_nxt), // latching from if-id pipe
+    .in_flag_en(flag_en),
+    .in_opcode(opcode),
+    .in_src1_reg(src1_reg),
+    .in_src2_reg(src2_reg),
+    .in_dst_reg(dst_reg),
+    .in_sign_ext_imm(sign_ext_imm),
+    .in_src1_data(src1_data),
+    .in_src2_data(src2_data),
+    .out_mem_read(id_ex_mem_read),
+    .out_mem_write(id_ex_mem_write),
+    .out_mem_to_reg(id_ex_mem_to_reg),
+    .out_write_reg(id_ex_write_reg),
+    .out_alu_src(id_ex_alu_src),
+    .out_pcs(id_ex_pcs),
+    .out_halt(id_ex_halt),
+    .out_pc_nxt(id_ex_pc_nxt),
+    .out_flag_en(id_ex_flag_en),
+    .out_opcode(id_ex_opcode),
+    .out_src1_reg(id_ex_src1_reg),
+    .out_src2_reg(id_ex_src2_reg),
+    .out_dst_reg(id_ex_dst_reg),
+    .out_sign_ext_imm(id_ex_sign_ext_imm),
+    .out_src1_data(id_ex_src1_data),
+    .out_src2_data(id_ex_src2_data)
+  );
 
 // ----------------------------------------
 
 // ---------- EX ------------
-assign alu_in1 = (mem_read | mem_write) ? (src1_data & 16'hFFFE) : src1_data;
-assign alu_in2 = alu_src ? sign_ext_imm : src2_data;
+assign alu_in1 = (id_ex_mem_read | id_ex_mem_write) ? (id_ex_src1_data & 16'hFFFE) : id_ex_src1_data;
+assign alu_in2 = id_ex_alu_src ? id_ex_sign_ext_imm : id_ex_src2_data;
 
 alu_16bit alu(.alu_in1(alu_in1),
         .alu_in2(alu_in2),
-        .opcode(instr[15:12]),
+        .opcode(id_ex_instr[15:12]),
         .alu_out(alu_out),
         .flag(flag)  // {sign, ovfl, zero};
         );
 
 // flag register for pc_control
-dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(flag_en[0]), .clk(clk), .rst(rst));
-dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(flag_en[1]), .clk(clk), .rst(rst));
-dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(flag_en[2]), .clk(clk), .rst(rst));
+dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(id_ex_flag_en[0]), .clk(clk), .rst(rst));
+dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(id_ex_flag_en[1]), .clk(clk), .rst(rst));
+dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rst(rst));
 
 // ---------------------------
 
+// ----------- EX-MEM PIPELINE--------------
+wire ex_mem_mem_read, ex_mem_mem_write, ex_mem_mem_to_reg, ex_mem_write_reg, ex_mem_pcs, ex_mem_halt;
+wire [15:0] ex_mem_alu_out, ex_mem_src2_data, ex_mem_pc_nxt;
+
+ex_mem_pipe  ex_mem_pipe_inst (
+    .clk(clk),
+    .rst(rst), //TODO: flush
+    .en(en), //TODO: stall
+    .in_mem_read(id_ex_mem_read),
+    .in_mem_write(id_ex_mem_write),
+    .in_mem_to_reg(id_ex_mem_to_reg),
+    .in_write_reg(id_ex_write_reg),
+    .in_pcs(id_ex_pcs),
+    .in_alu_out(alu_out),
+    .in_src2_data(id_ex_src2_data),
+    .in_halt(id_ex_halt),
+    .in_pc_nxt(id_ex_pc_nxt),
+    .out_mem_read(ex_mem_mem_read),
+    .out_mem_write(ex_mem_mem_write),
+    .out_mem_to_reg(ex_mem_mem_to_reg),
+    .out_write_reg(ex_mem_write_reg),
+    .out_pcs(ex_mem_pcs),
+    .out_alu_out(ex_mem_alu_out),
+    .out_src2_data(ex_mem_src2_data),
+    .out_halt(ex_mem_halt),
+    .out_pc_nxt(ex_mem_pc_nxt)
+  );
+// --------------------------------------
 
 // ---------- MEM ------------
-assign mem_enable = mem_write | mem_read;
+assign mem_enable = ex_mem_mem_write | ex_mem_mem_read;
 
 memory1c_data #(.DWIDTH(DWIDTH), 
                 .AWIDTH(AWIDTH)
                 ) data_mem (.data_out(mem_data),
-                        .data_in(src2_data),
-                        .addr(alu_out),
+                        .data_in(ex_mem_src2_data),
+                        .addr(ex_mem_alu_out),
                         .enable(mem_enable),
-                        .wr(mem_write),
+                        .wr(ex_mem_mem_write),
                         .clk(clk),
                         .rst(rst)
                         );
 // ---------------------------
 
+// ----------- MEM-WB Pipeline -------------
+
+wire [15:0] mem_wb_alu_out, mem_wb_mem_data, mem_wb_pc_nxt;
+wire mem_wb_mem_to_reg, mem_wb_write_reg, mem_wb_pcs, mem_wb_hlt;
+
+mem_wb_pipe  mem_wb_pipe_inst (
+    .clk(clk),
+    .rst(rst),
+    .en(en),
+    .in_mem_to_reg(ex_mem_mem_to_reg),
+    .in_write_reg(ex_mem_write_reg),
+    .in_pcs(ex_mem_pcs),
+    .in_alu_out(ex_mem_alu_out),
+    .in_mem_data(mem_data),
+    .in_halt(ex_mem_halt),
+    .in_pc_nxt(ex_mem_pc_nxt),
+    .out_mem_to_reg(mem_wb_mem_to_reg),
+    .out_write_reg(mem_wb_write_reg),
+    .out_pcs(mem_wb_pcs),
+    .out_alu_out(mem_wb_alu_out),
+    .out_mem_data(mem_wb_mem_data),
+    .out_halt(mem_wb_halt),
+    .out_pc_nxt(mem_wb_pc_nxt)
+    );
+
+// ------------------------------------------
+
+
 
 // ---------- WB ------------
-assign dst_data = (pcs)? pc_nxt: (mem_to_reg)? mem_data: alu_out;
+assign dst_data = (mem_wb_pcs)? mem_wb_pc_nxt: (mem_wb_mem_to_reg)? mem_wb_mem_data: mem_wb_alu_out;
 // ---------------------------
 
 endmodule
