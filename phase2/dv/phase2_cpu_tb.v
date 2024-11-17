@@ -31,19 +31,19 @@ module phase2_cpu_tb ();
 
   // Assign internal signals - See wisc_trace_p2.v for instructions.
   // Edit the example below. You must change the signal names on the right hand side to match your naming convention.
-  wisc_trace_p2(
+  wisc_trace_p2 wisc_trace_p2_inst (
       .clk(clk),
       .rst(rst),
       .PC(PC),
       .Inst(DUT.instr),
-      .RegWrite(DUT.register_file.write_reg),
-      .WriteRegister(DUT.register_file.dst_reg),
-      .WriteData(DUT.register_file.dst_data),
+      .RegWrite(DUT.regfile.write_reg),
+      .WriteRegister(DUT.regfile.dst_reg),
+      .WriteData(DUT.regfile.dst_data),
       .MemRead(DUT.mem_read),
       .MemWrite(DUT.mem_write),
-      .MemAddress(DUT.dmem.addr),
-      .MemDataIn(DUT.dmem.data_in),
-      .MemDataOut(DUT.dmem.data_out)
+      .MemAddress(DUT.data_mem.addr),
+      .MemDataIn(DUT.data_mem.data_in),
+      .MemDataOut(DUT.data_mem.data_out)
   );
 
   /* Add anything else you want here */
