@@ -5,7 +5,7 @@
 //          - Balaji Adithya
 
 // forwarding - done
-// hazard - detection; resolve?
+// hazard - detection; resolve (what pc to take)?
 // pc-update -> normal case and hlt case -> done
 //           -> ctrl hazard? 
 // stalls - ? (into pipeline - enables)
