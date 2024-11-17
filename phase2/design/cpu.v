@@ -98,9 +98,9 @@ if_id_pipe  if_id_pipe_inst (
     .rst(rst), //TODO: flush
     .en(), //TODO: stall 
     .in_instr(instr),
-    .in_pc_next(pc_nxt),
+    .in_pc_nxt(pc_nxt),
     .out_instr(if_id_instr),
-    .out_pc_next(if_id_pc_nxt)
+    .out_pc_nxt(if_id_pc_nxt)
   );
 
 // --------------------------------------
@@ -138,7 +138,7 @@ register_file regfile(
 );
  
 control_unit cpu_ctrl(
-    .opcode(if_id_instr[15:12]),
+    .opcode(opcode),
     .reg_dst(reg_dst),
     .reg_write(write_reg),
     .alu_src(alu_src),
@@ -168,7 +168,7 @@ assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, if_id_instr[3:0]} <
 // ----------- ID/EX Pipeline -------------
 wire id_ex_mem_read, id_ex_mem_write, id_ex_mem_to_reg, id_ex_write_reg, id_ex_alu_src, id_ex_pcs, id_ex_halt;
 wire [15:0] id_ex_pc_nxt, id_ex_sign_ext_imm, id_ex_src1_data, id_ex_src2_data;
-wire [3:0] id_ex_opcode, id_ex_src1_reg, id_ex_src2_reg, id_ex_dst_reg;    
+wire [3:0] id_ex_opcode, id_ex_src_reg1, id_ex_src_reg2, id_ex_dst_reg;    
 wire [2:0] id_ex_flag_en;
 
 id_ex_pipe  id_ex_pipe_inst (
@@ -185,8 +185,8 @@ id_ex_pipe  id_ex_pipe_inst (
     .in_pc_nxt(if_id_pc_nxt), // latching from if-id pipe
     .in_flag_en(flag_en),
     .in_opcode(opcode),
-    .in_src1_reg(src1_reg),
-    .in_src2_reg(src2_reg),
+    .in_src_reg1(src_reg1),
+    .in_src_reg2(src_reg2),
     .in_dst_reg(dst_reg),
     .in_sign_ext_imm(sign_ext_imm),
     .in_src1_data(src1_data),
@@ -201,8 +201,8 @@ id_ex_pipe  id_ex_pipe_inst (
     .out_pc_nxt(id_ex_pc_nxt),
     .out_flag_en(id_ex_flag_en),
     .out_opcode(id_ex_opcode),
-    .out_src1_reg(id_ex_src1_reg),
-    .out_src2_reg(id_ex_src2_reg),
+    .out_src_reg1(id_ex_src_reg1),
+    .out_src_reg2(id_ex_src_reg2),
     .out_dst_reg(id_ex_dst_reg),
     .out_sign_ext_imm(id_ex_sign_ext_imm),
     .out_src1_data(id_ex_src1_data),
@@ -215,9 +215,10 @@ id_ex_pipe  id_ex_pipe_inst (
 assign alu_in1 = (id_ex_mem_read | id_ex_mem_write) ? (id_ex_src1_data & 16'hFFFE) : id_ex_src1_data;
 assign alu_in2 = id_ex_alu_src ? id_ex_sign_ext_imm : id_ex_src2_data;
 
+
 alu_16bit alu(.alu_in1(alu_in1),
         .alu_in2(alu_in2),
-        .opcode(id_ex_instr[15:12]),
+        .opcode(id_ex_opcode),
         .alu_out(alu_out),
         .flag(flag)  // {sign, ovfl, zero};
         );
@@ -232,6 +233,7 @@ dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rs
 // ----------- EX-MEM PIPELINE--------------
 wire ex_mem_mem_read, ex_mem_mem_write, ex_mem_mem_to_reg, ex_mem_write_reg, ex_mem_pcs, ex_mem_halt;
 wire [15:0] ex_mem_alu_out, ex_mem_src2_data, ex_mem_pc_nxt;
+wire [3:0] ex_mem_src_reg1, ex_mem_src_reg2, ex_mem_dst_reg;    
 
 ex_mem_pipe  ex_mem_pipe_inst (
     .clk(clk),
@@ -242,6 +244,9 @@ ex_mem_pipe  ex_mem_pipe_inst (
     .in_mem_to_reg(id_ex_mem_to_reg),
     .in_write_reg(id_ex_write_reg),
     .in_pcs(id_ex_pcs),
+    .in_src_reg1(id_ex_src_reg1),
+    .in_src_reg2(id_ex_src_reg2),
+    .in_dst_reg(id_ex_dst_reg),
     .in_alu_out(alu_out),
     .in_src2_data(id_ex_src2_data),
     .in_halt(id_ex_halt),
@@ -251,6 +256,9 @@ ex_mem_pipe  ex_mem_pipe_inst (
     .out_mem_to_reg(ex_mem_mem_to_reg),
     .out_write_reg(ex_mem_write_reg),
     .out_pcs(ex_mem_pcs),
+    .out_src_reg1(ex_mem_src_reg1),
+    .out_src_reg2(ex_mem_src_reg2),
+    .out_dst_reg(ex_mem_dst_reg),
     .out_alu_out(ex_mem_alu_out),
     .out_src2_data(ex_mem_src2_data),
     .out_halt(ex_mem_halt),
