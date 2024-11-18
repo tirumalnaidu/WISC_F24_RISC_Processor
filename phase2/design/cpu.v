@@ -69,7 +69,7 @@ wire pcs;
 wire halt;
 
 //
-wire [15:0] pc_id_stage; // output from the pc-control block
+wire [15:0] pc_branch; // output from the pc-control block
 //
 
 
@@ -89,6 +89,7 @@ wire [15:0] pc_plus_two;
 wire [15:0] pc_if_stage;
 wire [3:0] opcode;
 wire if_stage_hlt;
+wire stall;
 
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
@@ -102,7 +103,7 @@ assign if_stage_hlt = &opcode;
 assign pc_hlt = pc_cur;
 addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
 
-assign pc_if_stage = (/* TODO: from ctrl_hazard*/ if_id_flush)? pc_id_stage: (if_stage_hlt)? pc_hlt: pc_plus_two;
+assign pc_if_stage = (/* TODO: from ctrl_hazard*/ 1'b0)? pc_branch: (if_stage_hlt | stall)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -129,8 +130,8 @@ wire [15:0] if_id_pc_nxt;
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
 
-    .rst(rst | if_id_flush),          //TODO: flush
-    .en(if_id_wen),      //TODO: stall 
+    .rst(rst),        //TODO: flush
+    .en(~stall),      //TODO: stall 
 
     // .in_flush(if_id_flush),
 
@@ -165,6 +166,7 @@ hazard_detection_unit hazard_unit(
     .branch(branch),
     .branchr(branchr),
     .opcode(if_id_instr[15:12]),
+    .stall(stall),
 
     .id_ex_flag_en(id_ex_flag_en),
     .ex_mem_flag_en(ex_mem_flag_en),
@@ -185,7 +187,7 @@ pc_control pc_ctrl( .c(if_id_instr[11:9]),
                     .hlt(halt),
                     .branch_type(branch_type),
                     .pc_in(if_id_pc_nxt), 
-                    .pc_out(pc_id_stage)
+                    .pc_out(pc_branch)
                     );
 
 assign src_reg1 = (llb_en | hlb_en) ? if_id_instr[11:8] : if_id_instr[7:4];
@@ -200,8 +202,8 @@ register_file regfile(
     .dst_reg(mem_wb_dst_reg),
     .write_reg(mem_wb_write_reg),
     .dst_data(dst_data),
-    .src_data1(src1_data),
-    .src_data2(src2_data)
+    .src1_data(src1_data),
+    .src2_data(src2_data)
 );
  
 control_unit cpu_ctrl(
@@ -240,8 +242,8 @@ wire [2:0] id_ex_flag_en;
 
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
-    .rst(rst | if_id_flush), //DONE: flush - use the flush propagated from if_id_stage (need to add)
-    .en(1'b1), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
+    .rst(rst), //DONE: flush - use the flush propagated from if_id_stage (need to add)
+    .en(~stall), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
 
     // IN - Control
     .in_mem_read(mem_read),
@@ -339,7 +341,7 @@ wire [2:0] ex_mem_flag, ex_mem_flag_en;
 
 ex_mem_pipe  ex_mem_pipe_inst (
     .clk(clk),
-    .rst(rst | id_ex_flush),  //DONE: flush - use the flush propagated from id_ex_stage (need to add)
+    .rst(rst),  //DONE: flush - use the flush propagated from id_ex_stage (need to add)
     .en(1'b1),    //TODO: stall - No stall needed from here on?
     
     // IN - Control

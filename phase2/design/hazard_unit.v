@@ -28,7 +28,8 @@ module hazard_detection_unit(
 
     // output global_stall,         // global stall if needed
     output if_id_flush,             // to : if_id_pipe -> flush the if_id pipeline register
-    output control_hazard           // to : pc_if_stage mux -> on detecting a hazard, pc will contain branch address
+    output control_hazard,          // to : pc_if_stage mux -> on detecting a hazard, pc will contain branch address
+    output stall
 );
 
 wire l2u_stall;
@@ -36,6 +37,10 @@ reg br_flag_stall_reg;
 wire br_flag_stall;
 wire br_rs_stall;
 // wire if_id_flush;
+
+// --- Stall for everything other than branch ----
+assign stall = (id_ex_mem_read) & ((id_ex_rd == if_id_rs) | (id_ex_rd == if_id_rt));
+// ----------------------------------------
 
 
 
