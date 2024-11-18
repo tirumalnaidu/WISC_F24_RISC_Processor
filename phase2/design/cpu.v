@@ -116,16 +116,19 @@ assign pc = pc_cur; // Current PC as output
 
 wire [15:0] if_id_instr;
 wire [15:0] if_id_pc_nxt;
+wire if_id_flush;
 
-// TODO: Comment - we need to propagate the flush to next pipeline stages also
+// DONE: Comment - we need to propagate the flush to next pipeline stages also
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
     .rst(rst),          //TODO: flush
     .en(if_id_en),      //TODO: stall 
+    .in_flush(),
     .in_instr(instr),
     .in_pc_nxt(pc_if_stage),
     .out_instr(if_id_instr),
-    .out_pc_nxt(if_id_pc_nxt)
+    .out_pc_nxt(if_id_pc_nxt),
+    .out_flush(if_id_flush)
   );
 
 // --------------------------------------
@@ -188,7 +191,7 @@ assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, if_id_instr[3:0]} <
                         (hlb_en) ? {if_id_instr[7:0], {8{1'b0}}} : 
                         {{12{1'b0}},if_id_instr[3:0]}; // for sll, srl, ror
 
-// TODO hlt signal to be given at the WB stage only
+// DONE hlt signal to be given at the WB stage only
 // assign hlt = halt;
 // ---------------------------
 
@@ -200,7 +203,7 @@ wire [2:0] id_ex_flag_en;
 
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
-    .rst(rst), //TODO: flush - use the flush propagated from if_id_stage (need to add)
+    .rst(if_id_flush), //DONE: flush - use the flush propagated from if_id_stage (need to add)
     .en(1'b1), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
 
     // IN - Control
@@ -253,7 +256,10 @@ id_ex_pipe  id_ex_pipe_inst (
     // OUT - Data
     .out_sign_ext_imm(id_ex_sign_ext_imm),
     .out_src1_data(id_ex_src1_data),
-    .out_src2_data(id_ex_src2_data)
+    .out_src2_data(id_ex_src2_data),
+
+    // OUT - Flush
+    .out_flush(id_ex_flush)
   );
 
 // ----------------------------------------
@@ -276,10 +282,10 @@ alu_16bit alu(.alu_in1(alu_in1),
               .flag(flag)  // {sign, ovfl, zero};
         );
 
-// TODO: flag register for pc_control - shift to the end (@ WB stage)
-dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(id_ex_flag_en[0]), .clk(clk), .rst(rst));
-dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(id_ex_flag_en[1]), .clk(clk), .rst(rst));
-dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rst(rst));
+// DONE: flag register for pc_control - shift to the end (@ WB stage)
+// dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(id_ex_flag_en[0]), .clk(clk), .rst(rst));
+// dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(id_ex_flag_en[1]), .clk(clk), .rst(rst));
+// dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rst(rst));
 
 // ---------------------------
 
@@ -287,10 +293,11 @@ dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rs
 wire ex_mem_mem_read, ex_mem_mem_write, ex_mem_mem_to_reg, ex_mem_write_reg, ex_mem_pcs, ex_mem_halt;
 wire [15:0] ex_mem_alu_out, ex_mem_src2_data, ex_mem_pc_nxt;
 wire [3:0] ex_mem_src_reg1, ex_mem_src_reg2, ex_mem_dst_reg;    
+wire [2:0] ex_mem_flag, ex_mem_flag_en;
 
 ex_mem_pipe  ex_mem_pipe_inst (
     .clk(clk),
-    .rst(rst),  //TODO: flush - use the flush propagated from id_ex_stage (need to add)
+    .rst(id_ex_flush),  //DONE: flush - use the flush propagated from id_ex_stage (need to add)
     .en(en),    //TODO: stall - No stall needed from here on?
     
     // IN - Control
@@ -308,13 +315,17 @@ ex_mem_pipe  ex_mem_pipe_inst (
 
     // IN - Data
     .in_alu_out(alu_out),
-    .in_src2_data(id_ex_src2_data), // TODO: What about SRC1 data?
+    .in_src2_data(id_ex_src1_data), 
+    .in_src2_data(id_ex_src2_data), // DONE: What about SRC1 data?
 
     // IN - PC
     .in_pc_nxt(id_ex_pc_nxt),
 
     // IN - Flag
-    // TODO: Add registers with respect to flags (enable and the computed flag values as well)
+    // DONE: Add registers with respect to flags (enable and the computed flag values as well)
+    .in_flag(flag),
+    .in_flag_en(id_ex_flag_en),
+
 
     // OUT - Control
     .out_mem_read(ex_mem_mem_read),
@@ -331,13 +342,16 @@ ex_mem_pipe  ex_mem_pipe_inst (
 
     // OUT - Data
     .out_alu_out(ex_mem_alu_out),
+    .out_src1_data(ex_mem_src1_data),
     .out_src2_data(ex_mem_src2_data),
 
     // OUT - PC
-    .out_pc_nxt(ex_mem_pc_nxt)
+    .out_pc_nxt(ex_mem_pc_nxt),
 
     // OUT - Flag
-    // TODO:
+    // DONE:
+    .out_flag(ex_mem_flag),
+    .out_flag_en(ex_mem_flag_en)
   );
 // --------------------------------------
 
@@ -358,8 +372,9 @@ memory1c_data #(.DWIDTH(DWIDTH),
 // ---------------------------
 
 // ----------- MEM-WB Pipeline -------------
-wire [15:0] mem_wb_alu_out, mem_wb_mem_data, mem_wb_pc_nxt;
+wire [15:0] mem_wb_alu_out, mem_wb_mem_data, mem_wb_pc_nxt, mem_wb_src_reg1, mem_wb_src_reg2, mem_wb_dst_reg;
 wire mem_wb_mem_to_reg, mem_wb_write_reg, mem_wb_pcs, mem_wb_hlt;
+wire [2:0] mem_wb_flag, mem_wb_flag_en;
 
 mem_wb_pipe  mem_wb_pipe_inst (
     .clk(clk),
@@ -380,10 +395,15 @@ mem_wb_pipe  mem_wb_pipe_inst (
     .in_pc_nxt(ex_mem_pc_nxt),
 
     // IN - Flag
-    // TODO
+    // DONE
+    .in_flag(ex_mem_flag),
+    .in_flag_en(ex_mem_flag_en),
 
     // IN - Reg
-    // TODO: Needed for fwd logic
+    // DONE: Needed for fwd logic
+    .in_src_reg1(ex_mem_src_reg1),
+    .in_src_reg2(ex_mem_src_reg2),
+    .in_dst_reg(ex_mem_dst_reg),
 
     // OUT - Control
     .out_mem_to_reg(mem_wb_mem_to_reg),
@@ -396,13 +416,19 @@ mem_wb_pipe  mem_wb_pipe_inst (
     .out_mem_data(mem_wb_mem_data),
 
     // OUT - PC
-    .out_pc_nxt(mem_wb_pc_nxt)
+    .out_pc_nxt(mem_wb_pc_nxt),
 
     // OUT - Flag
-    // TODO
+    // DONE
+    .out_flag(mem_wb_flag),
+    .out_flag_en(mem_wb_flag_en),
 
     // OUT - Reg
-    // TODO: Needed for fwd logic
+    // DONE: Needed for fwd logic
+    .out_src_reg1(ex_mem_src_reg1),
+    .out_src_reg2(ex_mem_src_reg2),
+    .out_dst_reg(ex_mem_dst_reg)
+
     );
 
 // ------------------------------------------
