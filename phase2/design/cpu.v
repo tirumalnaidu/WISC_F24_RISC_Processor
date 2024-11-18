@@ -103,7 +103,7 @@ assign if_stage_hlt = &opcode;
 assign pc_hlt = pc_cur;
 addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
 
-assign pc_if_stage = (/* TODO: from ctrl_hazard*/ 1'b0)? pc_branch: (if_stage_hlt | stall)? pc_hlt: pc_plus_two;
+assign pc_if_stage = (branch & branch_condition)? pc_branch: (if_stage_hlt | stall)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -130,7 +130,7 @@ wire [15:0] if_id_pc_nxt;
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
 
-    .rst(rst),        //TODO: flush
+    .rst(rst | (branch & branch_condition)),        //TODO: flush
     .en(~stall),      //TODO: stall 
 
     // .in_flush(if_id_flush),
@@ -326,6 +326,28 @@ alu_16bit alu(.alu_in1(alu_in1),
               .flag(flag)  // {sign, ovfl, zero};
         );
 
+
+reg branch_condition;
+always @(*) begin
+    case(if_id_instr[15:11])
+        5'b01100 : begin //BEQZ
+            branch_condition = ~|alu_out;    
+        end
+        5'b01101 : begin //BNEZ
+            branch_condition = |alu_out;     
+        end
+        5'b01110 : begin //BLTZ
+            branch_condition = alu_out[15]; 
+        end
+        5'b01111 : begin //BGEZ
+            branch_condition = ~alu_out[15]; 
+        end
+        default : begin
+            branch_condition = 1'b0;
+        end
+    endcase
+end
+     
 // DONE: flag register for pc_control - shift to the end (@ WB stage)
 // dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(id_ex_flag_en[0]), .clk(clk), .rst(rst));
 // dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(id_ex_flag_en[1]), .clk(clk), .rst(rst));
