@@ -66,6 +66,16 @@ wire [15:0] pc_id_stage; // output from the pc-control block
 //
 
 
+// Forwarding Select Lines
+wire [1:0] forwardA_ALU;
+wire [1:0] forwardB_ALU;
+wire forward_BRANCH;
+wire forward_MEM;
+
+wire [15:0] forwardA_data;
+wire [15:0] forwardB_data;
+wire [15:0] forwardMEM_data;
+
 // ---------- IF ------------
 wire [15:0] pc_hlt;
 wire [15:0] pc_plus_two;
@@ -249,8 +259,14 @@ id_ex_pipe  id_ex_pipe_inst (
 // ----------------------------------------
 
 // ---------- EX ------------
-assign alu_in1 = (id_ex_mem_read | id_ex_mem_write) ? (id_ex_src1_data & 16'hFFFE) : id_ex_src1_data;
-assign alu_in2 = id_ex_alu_src ? id_ex_sign_ext_imm : id_ex_src2_data;
+assign forwardA_data = (~forwardA_ALU[1] & ~forwardA_ALU[0])? id_ex_src1_data: (~forwardA_ALU[1] & forwardA_ALU[0])? dst_data: ex_mem_alu_out;
+assign forwardB_data = (~forwardB_ALU[1] & ~forwardB_ALU[0])? id_ex_src2_data: (~forwardB_ALU[1] & forwardB_ALU[0])? dst_data: ex_mem_alu_out;
+
+assign alu_in1 = (id_ex_mem_read | id_ex_mem_write) ? (forwardA_data & 16'hFFFE) : forwardA_data;
+assign alu_in2 = id_ex_alu_src ? id_ex_sign_ext_imm : forwardB_data;
+
+//assign alu_in1 = (id_ex_mem_read | id_ex_mem_write) ? (id_ex_src1_data & 16'hFFFE) : id_ex_src1_data;
+//assign alu_in2 = id_ex_alu_src ? id_ex_sign_ext_imm : id_ex_src2_data;
 
 
 alu_16bit alu(.alu_in1(alu_in1),
@@ -327,11 +343,12 @@ ex_mem_pipe  ex_mem_pipe_inst (
 
 // ---------- MEM ------------
 assign mem_enable = ex_mem_mem_write | ex_mem_mem_read;
+assign forwardMEM_data = (forward_MEM)? dst_data: ex_mem_src2_data;
 
 memory1c_data #(.DWIDTH(DWIDTH), 
                 .AWIDTH(AWIDTH)
                 ) data_mem (.data_out(mem_data),
-                        .data_in(ex_mem_src2_data),
+                        .data_in(forwardMEM_data),
                         .addr(ex_mem_alu_out),
                         .enable(mem_enable),
                         .wr(ex_mem_mem_write),
@@ -341,7 +358,6 @@ memory1c_data #(.DWIDTH(DWIDTH),
 // ---------------------------
 
 // ----------- MEM-WB Pipeline -------------
-
 wire [15:0] mem_wb_alu_out, mem_wb_mem_data, mem_wb_pc_nxt;
 wire mem_wb_mem_to_reg, mem_wb_write_reg, mem_wb_pcs, mem_wb_hlt;
 
@@ -419,10 +435,10 @@ forward_unit fwd(
     .mem_wb_rd(mem_wb_dst_reg),
     .mem_wb_write_reg(mem_wb_write_reg),
 
-    .forwardA_ALU(),
-    .forwardB_ALU(),
-    .forward_MEM(),
-    .forward_BRANCH()
+    .forwardA_ALU(forwardA_ALU),
+    .forwardB_ALU(forwardB_ALU),
+    .forward_MEM(forward_MEM),
+    .forward_BRANCH(forward_BRANCH)
 );
 
 endmodule
