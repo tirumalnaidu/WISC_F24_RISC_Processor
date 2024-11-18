@@ -76,7 +76,7 @@ wire if_stage_hlt;
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
                 .pc_en(pc_wen),
-                .pc_in(pc_nxt), 
+                .pc_in(pc_if_stage), 
                 .pc_out(pc_cur)
                 );
 
@@ -85,7 +85,7 @@ assign if_stage_hlt = &opcode;
 assign pc_hlt = pc_cur;
 addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
 
-assign pc_if_stage = (/*from ctrl_hazard*/)? pc_id_stage: (if_stage_hlt)? pc_hlt: pc_plus_two;
+assign pc_if_stage = (/* TODO: from ctrl_hazard*/)? pc_id_stage: (if_stage_hlt)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
