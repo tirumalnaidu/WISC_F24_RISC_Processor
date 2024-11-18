@@ -33,7 +33,8 @@ module id_ex_pipe(
     output [3:0] out_dst_reg,
     output [15:0] out_sign_ext_imm,
     output [15:0] out_src1_data,
-    output [15:0] out_src2_data
+    output [15:0] out_src2_data,
+    output out_flush
 );
 
 pldff #(.WIDTH(1)) mem_read_pldff (.q(out_mem_read), .d(in_mem_read), .wen(en), .clk(clk), .rst(rst));
@@ -53,5 +54,7 @@ pldff #(.WIDTH(4)) dst_reg_pldff (.q(out_dst_reg), .d(in_dst_reg), .wen(en), .cl
 pldff #(.WIDTH(16)) sign_ext_imm_pldff (.q(out_sign_ext_imm), .d(in_sign_ext_imm), .wen(en), .clk(clk), .rst(rst));
 pldff #(.WIDTH(16)) src1_data_pldff (.q(out_src1_data), .d(in_src1_data), .wen(en), .clk(clk), .rst(rst));
 pldff #(.WIDTH(16)) src2_data_pldff (.q(out_src2_data), .d(in_src2_data), .wen(en), .clk(clk), .rst(rst));
+
+pldff #(.WIDTH(1)) flush_pldff (.q(out_flush), .d(rst), .wen(en), .clk(clk), .rst(rst));
 
 endmodule
