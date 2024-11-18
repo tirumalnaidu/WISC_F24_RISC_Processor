@@ -1,4 +1,5 @@
 // WISC Trace P2 - CPU Stats & Logging
+`timescale 1ns / 1ps
 
 module wisc_trace_p2 #(
     parameter ARCH_WIDTH = 16,
