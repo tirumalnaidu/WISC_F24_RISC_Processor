@@ -19,7 +19,8 @@ input			hlt,
 input [15:0] 	pc_in,
 
 /*OUTPUT*/
-output [15:0] 	pc_out
+output [15:0] 	pc_out,
+output 			br_taken_out
 );
 
 // Condition
@@ -83,5 +84,6 @@ always @(*) begin
 	endcase
 end
 assign pc_out = (branch | hlt | pcs)? pc_next: pc_in;
+assign br_taken_out = br_taken & branch;
 
 endmodule

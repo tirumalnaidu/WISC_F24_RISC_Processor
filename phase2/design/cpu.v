@@ -39,7 +39,7 @@ wire [15:0] src1_data, src2_data;
 wire pc_wen;
 wire if_id_wen;
 wire if_id_flush;
-wire control_hazard;
+wire control_stall;
 
 
 // EX
@@ -70,6 +70,7 @@ wire halt;
 
 //
 wire [15:0] pc_branch; // output from the pc-control block
+wire br_taken;
 //
 
 
@@ -103,7 +104,7 @@ assign if_stage_hlt = &opcode;
 assign pc_hlt = pc_cur;
 addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
 
-assign pc_if_stage = (branch & branch_condition)? pc_branch: (if_stage_hlt | stall)? pc_hlt: pc_plus_two;
+assign pc_if_stage = (if_id_flush)? pc_branch: (if_stage_hlt | stall)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -124,14 +125,14 @@ assign pc = pc_cur; // Current PC as output
 
 wire [15:0] if_id_instr;
 wire [15:0] if_id_pc_nxt;
-// wire if_id_flush;
 
 // DONE: Comment - we need to propagate the flush to next pipeline stages also
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
 
-    .rst(rst | (branch & branch_condition)),        //TODO: flush
+    .rst(rst),        //TODO: flush
     .en(~stall),      //TODO: stall 
+    .flush_in(if_id_flush),
 
     // .in_flush(if_id_flush),
 
@@ -153,6 +154,7 @@ assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00
 hazard_detection_unit hazard_unit(
     .clk(clk),
     .rst(rst),
+    .br_taken(br_taken),
     .id_ex_mem_read(id_ex_mem_read),
     .id_ex_reg_write(id_ex_mem_write),
     .ex_mem_reg_write(ex_mem_write_reg),
@@ -172,14 +174,14 @@ hazard_detection_unit hazard_unit(
     .ex_mem_flag_en(ex_mem_flag_en),
     .condition(if_id_instr[11:9]),
     .if_id_flush(if_id_flush),             // to : if_id_pipe -> flush the if_id pipeline register
-    .control_hazard(control_hazard)           // to : pc_if_stage mux -> on detecting a hazard, pc will contain branch address
+    .control_stall(control_stall)           // to : pc_if_stage mux -> on detecting a hazard, pc will contain branch address
 );
 
 
 
 
 pc_control pc_ctrl( .c(if_id_instr[11:9]),
-                    .f(flag_reg_out),       //TODO: Should not use this flag_reg_out -> must use the one propagated till WB
+                    .f(mem_wb_flag),       //TODO: Should not use this flag_reg_out -> must use the one propagated till WB
                     .i(if_id_instr[8:0]),
                     .target(src1_data),
                     .branch(branch),
@@ -187,7 +189,8 @@ pc_control pc_ctrl( .c(if_id_instr[11:9]),
                     .hlt(halt),
                     .branch_type(branch_type),
                     .pc_in(if_id_pc_nxt), 
-                    .pc_out(pc_branch)
+                    .pc_out(pc_branch),
+                    .br_taken_out(br_taken)
                     );
 
 assign src_reg1 = (llb_en | hlb_en) ? if_id_instr[11:8] : if_id_instr[7:4];
@@ -243,7 +246,7 @@ wire [2:0] id_ex_flag_en;
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
     .rst(rst | stall), //DONE: flush - use the flush propagated from if_id_stage (need to add)
-    .en(1'b1), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
+    .en(~control_stall), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
 
     // IN - Control
     .in_mem_read(mem_read),
@@ -327,7 +330,7 @@ alu_16bit alu(.alu_in1(alu_in1),
         );
 
 
-reg branch_condition;
+/*reg branch_condition;
 always @(*) begin
     case(if_id_instr[15:11])
         5'b01100 : begin //BEQZ
@@ -346,7 +349,7 @@ always @(*) begin
             branch_condition = 1'b0;
         end
     endcase
-end
+end*/
      
 // DONE: flag register for pc_control - shift to the end (@ WB stage)
 // dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(id_ex_flag_en[0]), .clk(clk), .rst(rst));
