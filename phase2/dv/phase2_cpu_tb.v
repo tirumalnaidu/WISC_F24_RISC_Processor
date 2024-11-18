@@ -34,6 +34,7 @@ module phase2_cpu_tb ();
   wisc_trace_p2 wisc_trace_p2_inst (
       .clk(clk),
       .rst(rst),
+      .Halt(Halt),
       .PC(PC),
       .Inst(DUT.instr),
       .RegWrite(DUT.regfile.write_reg),
