@@ -124,16 +124,16 @@ assign pc = pc_cur; // Current PC as output
 
 wire [15:0] if_id_instr;
 wire [15:0] if_id_pc_nxt;
-wire if_id_flush;
+// wire if_id_flush;
 
 // DONE: Comment - we need to propagate the flush to next pipeline stages also
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
 
-    .rst(rst),          //TODO: flush
+    .rst(rst | if_id_flush),          //TODO: flush
     .en(if_id_wen),      //TODO: stall 
 
-  .in_flush(if_id_flush),
+    // .in_flush(if_id_flush),
 
     .in_instr(instr),
     .in_pc_nxt(pc_if_stage),
