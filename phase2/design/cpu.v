@@ -61,24 +61,31 @@ wire branchr;
 wire pcs;
 wire halt;
 
+//
+wire [15:0] pc_id_stage; // output from the pc-control block
+//
+
+
 // ---------- IF ------------
 wire [15:0] pc_hlt;
 wire [15:0] pc_plus_two;
+wire [15:0] pc_if_stage;
 wire [3:0] opcode;
 wire if_stage_hlt;
 
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
+                .pc_en(pc_wen),
                 .pc_in(pc_nxt), 
                 .pc_out(pc_cur)
                 );
 
 assign opcode = instr[15:12];
 assign if_stage_hlt = &opcode;
-assign pc_hlt = pc;
+assign pc_hlt = pc_cur;
 addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
 
-// assign pc_nxt = (/*from ctrl_hazard*/)? pc_hazard: (if_stage_hlt)? pc_hlt: pc_plus_two;
+assign pc_if_stage = (/*from ctrl_hazard*/)? pc_id_stage: (if_stage_hlt)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -100,12 +107,13 @@ assign pc = pc_cur; // Current PC as output
 wire [15:0] if_id_instr;
 wire [15:0] if_id_pc_nxt;
 
+// TODO: Comment - we need to propagate the flush to next pipeline stages also
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
-    .rst(rst), //TODO: flush
-    .en(), //TODO: stall 
+    .rst(rst),          //TODO: flush
+    .en(if_id_en),      //TODO: stall 
     .in_instr(instr),
-    .in_pc_nxt(pc_nxt),
+    .in_pc_nxt(pc_if_stage),
     .out_instr(if_id_instr),
     .out_pc_nxt(if_id_pc_nxt)
   );
@@ -114,18 +122,20 @@ if_id_pipe  if_id_pipe_inst (
 
 // ---------- ID ------------
 // Glue Logic for pc_control
+wire [3:0] id_opcode;
+assign id_opcode = if_id_instr[15:12];
 assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00;
 
 pc_control pc_ctrl( .c(if_id_instr[11:9]),
-                    .f(flag_reg_out),
+                    .f(flag_reg_out),       //TODO: Should not use this flag_reg_out -> must use the one propagated till WB
                     .i(if_id_instr[8:0]),
                     .target(src1_data),
                     .branch(branch),
                     .pcs(pcs),
                     .hlt(halt),
                     .branch_type(branch_type),
-                    .pc_in(pc_cur), // TODO: ???
-                    .pc_out(if_id_pc) // TODO: ???
+                    .pc_in(if_id_pc_nxt), 
+                    .pc_out(pc_id_stage)
                     );
 
 assign src_reg1 = (llb_en | hlb_en) ? if_id_instr[11:8] : if_id_instr[7:4];
@@ -145,7 +155,7 @@ register_file regfile(
 );
  
 control_unit cpu_ctrl(
-    .opcode(opcode),
+    .opcode(id_opcode),
     .reg_dst(reg_dst),
     .reg_write(write_reg),
     .alu_src(alu_src),
@@ -180,8 +190,10 @@ wire [2:0] id_ex_flag_en;
 
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
-    .rst(rst), //TODO: flush
-    .en(en), //TODO: stall
+    .rst(rst), //TODO: flush - use the flush propagated from if_id_stage (need to add)
+    .en(1'b1), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
+
+    // IN - Control
     .in_mem_read(mem_read),
     .in_mem_write(mem_write),
     .in_mem_to_reg(mem_to_reg),
@@ -189,15 +201,25 @@ id_ex_pipe  id_ex_pipe_inst (
     .in_alu_src(alu_src),
     .in_pcs(pcs),
     .in_halt(halt),
-    .in_pc_nxt(if_id_pc_nxt), // latching from if-id pipe
+    .in_opcode(id_opcode),
+
+    // IN - Flag related
     .in_flag_en(flag_en),
-    .in_opcode(opcode),
+
+    // IN - PC
+    .in_pc_nxt(if_id_pc_nxt), // latching from if-id pipe
+
+    // IN - Reg
     .in_src_reg1(src_reg1),
     .in_src_reg2(src_reg2),
     .in_dst_reg(dst_reg),
+
+    // IN - Data
     .in_sign_ext_imm(sign_ext_imm),
     .in_src1_data(src1_data),
     .in_src2_data(src2_data),
+
+    // OUT - Control
     .out_mem_read(id_ex_mem_read),
     .out_mem_write(id_ex_mem_write),
     .out_mem_to_reg(id_ex_mem_to_reg),
@@ -205,12 +227,20 @@ id_ex_pipe  id_ex_pipe_inst (
     .out_alu_src(id_ex_alu_src),
     .out_pcs(id_ex_pcs),
     .out_halt(id_ex_halt),
-    .out_pc_nxt(id_ex_pc_nxt),
-    .out_flag_en(id_ex_flag_en),
     .out_opcode(id_ex_opcode),
+
+    // OUT - Flag Related
+    .out_flag_en(id_ex_flag_en),
+
+    // OUT - PC
+    .out_pc_nxt(id_ex_pc_nxt),
+
+    // OUT - Reg
     .out_src_reg1(id_ex_src_reg1),
     .out_src_reg2(id_ex_src_reg2),
     .out_dst_reg(id_ex_dst_reg),
+
+    // OUT - Data
     .out_sign_ext_imm(id_ex_sign_ext_imm),
     .out_src1_data(id_ex_src1_data),
     .out_src2_data(id_ex_src2_data)
@@ -224,13 +254,13 @@ assign alu_in2 = id_ex_alu_src ? id_ex_sign_ext_imm : id_ex_src2_data;
 
 
 alu_16bit alu(.alu_in1(alu_in1),
-        .alu_in2(alu_in2),
-        .opcode(id_ex_opcode),
-        .alu_out(alu_out),
-        .flag(flag)  // {sign, ovfl, zero};
+              .alu_in2(alu_in2),
+              .opcode(id_ex_opcode),
+              .alu_out(alu_out),
+              .flag(flag)  // {sign, ovfl, zero};
         );
 
-// flag register for pc_control
+// TODO: flag register for pc_control - shift to the end (@ WB stage)
 dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(id_ex_flag_en[0]), .clk(clk), .rst(rst));
 dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(id_ex_flag_en[1]), .clk(clk), .rst(rst));
 dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rst(rst));
@@ -244,32 +274,54 @@ wire [3:0] ex_mem_src_reg1, ex_mem_src_reg2, ex_mem_dst_reg;
 
 ex_mem_pipe  ex_mem_pipe_inst (
     .clk(clk),
-    .rst(rst), //TODO: flush
-    .en(en), //TODO: stall
+    .rst(rst),  //TODO: flush - use the flush propagated from id_ex_stage (need to add)
+    .en(en),    //TODO: stall - No stall needed from here on?
+    
+    // IN - Control
     .in_mem_read(id_ex_mem_read),
     .in_mem_write(id_ex_mem_write),
     .in_mem_to_reg(id_ex_mem_to_reg),
     .in_write_reg(id_ex_write_reg),
     .in_pcs(id_ex_pcs),
+    .in_halt(id_ex_halt),
+
+    // IN - Reg
     .in_src_reg1(id_ex_src_reg1),
     .in_src_reg2(id_ex_src_reg2),
     .in_dst_reg(id_ex_dst_reg),
+
+    // IN - Data
     .in_alu_out(alu_out),
-    .in_src2_data(id_ex_src2_data),
-    .in_halt(id_ex_halt),
+    .in_src2_data(id_ex_src2_data), // TODO: What about SRC1 data?
+
+    // IN - PC
     .in_pc_nxt(id_ex_pc_nxt),
+
+    // IN - Flag
+    // TODO: Add registers with respect to flags (enable and the computed flag values as well)
+
+    // OUT - Control
     .out_mem_read(ex_mem_mem_read),
     .out_mem_write(ex_mem_mem_write),
     .out_mem_to_reg(ex_mem_mem_to_reg),
     .out_write_reg(ex_mem_write_reg),
     .out_pcs(ex_mem_pcs),
+    .out_halt(ex_mem_halt),
+
+    // OUT - Reg
     .out_src_reg1(ex_mem_src_reg1),
     .out_src_reg2(ex_mem_src_reg2),
     .out_dst_reg(ex_mem_dst_reg),
+
+    // OUT - Data
     .out_alu_out(ex_mem_alu_out),
     .out_src2_data(ex_mem_src2_data),
-    .out_halt(ex_mem_halt),
+
+    // OUT - PC
     .out_pc_nxt(ex_mem_pc_nxt)
+
+    // OUT - Flag
+    // TODO:
   );
 // --------------------------------------
 
@@ -295,30 +347,82 @@ wire mem_wb_mem_to_reg, mem_wb_write_reg, mem_wb_pcs, mem_wb_hlt;
 
 mem_wb_pipe  mem_wb_pipe_inst (
     .clk(clk),
-    .rst(rst),
-    .en(en),
+    .rst(rst),  // Flush - needs to propagate from previous stage - ex_mem_pipe
+    .en(1'b1),    // Stall - no need right? (never stalls)
+
+    // IN - Control
     .in_mem_to_reg(ex_mem_mem_to_reg),
     .in_write_reg(ex_mem_write_reg),
     .in_pcs(ex_mem_pcs),
+    .in_halt(ex_mem_halt),
+
+    // IN - Data
     .in_alu_out(ex_mem_alu_out),
     .in_mem_data(mem_data),
-    .in_halt(ex_mem_halt),
+
+    // IN - PC
     .in_pc_nxt(ex_mem_pc_nxt),
+
+    // IN - Flag
+    // TODO
+
+    // IN - Reg
+    // TODO: Needed for fwd logic
+
+    // OUT - Control
     .out_mem_to_reg(mem_wb_mem_to_reg),
     .out_write_reg(mem_wb_write_reg),
     .out_pcs(mem_wb_pcs),
+    .out_halt(mem_wb_halt),
+
+    // OUT - Data
     .out_alu_out(mem_wb_alu_out),
     .out_mem_data(mem_wb_mem_data),
-    .out_halt(mem_wb_halt),
+
+    // OUT - PC
     .out_pc_nxt(mem_wb_pc_nxt)
+
+    // OUT - Flag
+    // TODO
+
+    // OUT - Reg
+    // TODO: Needed for fwd logic
     );
 
 // ------------------------------------------
 
-
-
 // ---------- WB ------------
+// TODO: Shift pcs operation to ALU unit itself -> assign the value within ALU (and give output via alu_out); 
+// don't have to propagate PCS signal till here
 assign dst_data = (mem_wb_pcs)? mem_wb_pc_nxt: (mem_wb_mem_to_reg)? mem_wb_mem_data: mem_wb_alu_out;
+assign halt = mem_wb_halt;
 // ---------------------------
+
+// Forwarding Unit
+forward_unit fwd(
+    .if_id_rs(src_reg1),
+    .if_id_rt(src_reg2),
+    .if_id_branch(1'b0),    //TODO: Whenever there's a branch? Or should there be extra check?
+
+    .id_ex_rs(id_ex_src_reg1),
+    .id_ex_rt(id_ex_src_reg2),
+    .id_ex_rd(id_ex_dst_reg),
+    .id_ex_write_reg(id_ex_write_reg),
+
+    .ex_mem_rs(ex_mem_src_reg1),
+    .ex_mem_rt(ex_mem_src_reg2),
+    .ex_mem_rd(ex_mem_dst_reg),
+    .ex_mem_write_reg(ex_mem_write_reg),
+
+    .mem_wb_rs(mem_wb_src_reg1),
+    .mem_wb_rt(mem_wb_src_reg2),
+    .mem_wb_rd(mem_wb_dst_reg),
+    .mem_wb_write_reg(mem_wb_write_reg),
+
+    .forwardA_ALU(),
+    .forwardB_ALU(),
+    .forward_MEM(),
+    .forward_BRANCH()
+);
 
 endmodule
