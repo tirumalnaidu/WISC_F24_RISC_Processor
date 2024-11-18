@@ -1,6 +1,7 @@
 `include "common/flags.vh"
 module hazard_detection_unit(
 
+// ---- control signals for load-to-use type stall ----
     input id_ex_mem_read,
     input id_ex_reg_write,
     input ex_mem_reg_write,
@@ -11,8 +12,8 @@ module hazard_detection_unit(
     input id_ex_rd,
     input ex_mem_rd,
     
-    output pc_wen,            // write_enable signal to pc_update register
-    output if_id_wen,         // write_enable signal to the IF/ID. pipeline register
+    output pc_wen,                  // to : pc_update -> write_enable signal to pc_update register
+    output if_id_wen,               // to : if_id_pipe -> write_enable signal to the IF/ID. pipeline register
 
     input branch,
     input branchr,
@@ -22,9 +23,9 @@ module hazard_detection_unit(
     input [2:0] ex_mem_flag_en,
     input [2:0] condtion,
 
-    // output global_stall,                // global stall if needed
-    output if_id_flush,  
-    output control_hazard
+    // output global_stall,         // global stall if needed
+    output if_id_flush,             // to : if_id_pipe -> flush the if_id pipeline register
+    output control_hazard           // to : pc_if_stage mux -> on detecting a hazard, pc will contain branch address
 );
 
 wire l2u_stall;
