@@ -92,7 +92,6 @@ wire if_stage_hlt;
 
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
-                .pc_en(pc_wen),
                 .pc_in(pc_if_stage), 
                 .pc_wen(pc_wen),
                 .pc_out(pc_cur)
@@ -103,7 +102,7 @@ assign if_stage_hlt = &opcode;
 assign pc_hlt = pc_cur;
 addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
 
-assign pc_if_stage = (/* TODO: from ctrl_hazard*/ control_hazard)? pc_id_stage: (if_stage_hlt)? pc_hlt: pc_plus_two;
+assign pc_if_stage = (/* TODO: from ctrl_hazard*/ if_id_flush)? pc_id_stage: (if_stage_hlt)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -138,8 +137,7 @@ if_id_pipe  if_id_pipe_inst (
     .in_instr(instr),
     .in_pc_nxt(pc_if_stage),
     .out_instr(if_id_instr),
-    .out_pc_nxt(if_id_pc_nxt),
-    .out_flush(if_id_flush)
+    .out_pc_nxt(if_id_pc_nxt)
   );
 
 // --------------------------------------
@@ -152,6 +150,8 @@ assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00
 
 
 hazard_detection_unit hazard_unit(
+    .clk(clk),
+    .rst(rst),
     .id_ex_mem_read(id_ex_mem_read),
     .id_ex_reg_write(id_ex_mem_write),
     .ex_mem_reg_write(ex_mem_write_reg),
@@ -168,7 +168,7 @@ hazard_detection_unit hazard_unit(
 
     .id_ex_flag_en(id_ex_flag_en),
     .ex_mem_flag_en(ex_mem_flag_en),
-    .condtion(if_id_instr[11:9]),
+    .condition(if_id_instr[11:9]),
     .if_id_flush(if_id_flush),             // to : if_id_pipe -> flush the if_id pipeline register
     .control_hazard(control_hazard)           // to : pc_if_stage mux -> on detecting a hazard, pc will contain branch address
 );
@@ -197,8 +197,8 @@ register_file regfile(
     .rst(rst),
     .src_reg1(src_reg1),
     .src_reg2(src_reg2),
-    .dst_reg(dst_reg),
-    .write_reg(write_reg),
+    .dst_reg(mem_wb_dst_reg),
+    .write_reg(mem_wb_write_reg),
     .dst_data(dst_data),
     .src_data1(src1_data),
     .src_data2(src2_data)
@@ -240,7 +240,7 @@ wire [2:0] id_ex_flag_en;
 
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
-    .rst(if_id_flush), //DONE: flush - use the flush propagated from if_id_stage (need to add)
+    .rst(rst | if_id_flush), //DONE: flush - use the flush propagated from if_id_stage (need to add)
     .en(1'b1), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
 
     // IN - Control
@@ -328,14 +328,14 @@ alu_16bit alu(.alu_in1(alu_in1),
 
 // ----------- EX-MEM PIPELINE--------------
 wire ex_mem_mem_read, ex_mem_mem_write, ex_mem_mem_to_reg, ex_mem_write_reg, ex_mem_pcs, ex_mem_halt;
-wire [15:0] ex_mem_alu_out, ex_mem_src2_data, ex_mem_pc_nxt;
+wire [15:0] ex_mem_alu_out, ex_mem_src1_data, ex_mem_src2_data, ex_mem_pc_nxt;
 wire [3:0] ex_mem_src_reg1, ex_mem_src_reg2, ex_mem_dst_reg;    
 wire [2:0] ex_mem_flag, ex_mem_flag_en;
 
 ex_mem_pipe  ex_mem_pipe_inst (
     .clk(clk),
-    .rst(id_ex_flush),  //DONE: flush - use the flush propagated from id_ex_stage (need to add)
-    .en(en),    //TODO: stall - No stall needed from here on?
+    .rst(rst | id_ex_flush),  //DONE: flush - use the flush propagated from id_ex_stage (need to add)
+    .en(1'b1),    //TODO: stall - No stall needed from here on?
     
     // IN - Control
     .in_mem_read(id_ex_mem_read),
@@ -352,7 +352,7 @@ ex_mem_pipe  ex_mem_pipe_inst (
 
     // IN - Data
     .in_alu_out(alu_out),
-    .in_src2_data(id_ex_src1_data), 
+    .in_src1_data(id_ex_src1_data), 
     .in_src2_data(id_ex_src2_data), // DONE: What about SRC1 data?
 
     // IN - PC
@@ -411,7 +411,8 @@ memory1c_data #(.DWIDTH(DWIDTH),
 // ---------------------------
 
 // ----------- MEM-WB Pipeline -------------
-wire [15:0] mem_wb_alu_out, mem_wb_mem_data, mem_wb_pc_nxt, mem_wb_src_reg1, mem_wb_src_reg2, mem_wb_dst_reg;
+wire [15:0] mem_wb_alu_out, mem_wb_mem_data, mem_wb_pc_nxt;
+wire [3:0] mem_wb_src_reg1, mem_wb_src_reg2, mem_wb_dst_reg;
 wire mem_wb_mem_to_reg, mem_wb_write_reg, mem_wb_pcs, mem_wb_hlt;
 wire [2:0] mem_wb_flag, mem_wb_flag_en;
 
@@ -464,9 +465,9 @@ mem_wb_pipe  mem_wb_pipe_inst (
 
     // OUT - Reg
     // DONE: Needed for fwd logic
-    .out_src_reg1(ex_mem_src_reg1),
-    .out_src_reg2(ex_mem_src_reg2),
-    .out_dst_reg(ex_mem_dst_reg)
+    .out_src_reg1(mem_wb_src_reg1),
+    .out_src_reg2(mem_wb_src_reg2),
+    .out_dst_reg(mem_wb_dst_reg)
 
     );
 

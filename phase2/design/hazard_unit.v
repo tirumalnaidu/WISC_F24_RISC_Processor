@@ -2,15 +2,18 @@
 module hazard_detection_unit(
 
 // ---- control signals for load-to-use type stall ---- 
+    input clk,
+    input rst,
+
     input id_ex_mem_read,
     input id_ex_reg_write,
     input ex_mem_reg_write,
     input if_id_mem_write,          // directly from control signal
     
-    input if_id_rs,
-    input if_id_rt,
-    input id_ex_rd,
-    input ex_mem_rd,
+    input [3:0] if_id_rs,
+    input [3:0] if_id_rt,
+    input [3:0] id_ex_rd,
+    input [3:0] ex_mem_rd,
     
     output pc_wen,                  // to : pc_update -> write_enable signal to pc_update register
     output if_id_wen,               // to : if_id_pipe -> write_enable signal to the IF/ID. pipeline register
@@ -21,7 +24,7 @@ module hazard_detection_unit(
     // input [3:0] condition,
     input [2:0] id_ex_flag_en,
     input [2:0] ex_mem_flag_en,
-    input [2:0] condtion,
+    input [2:0] condition,
 
     // output global_stall,         // global stall if needed
     output if_id_flush,             // to : if_id_pipe -> flush the if_id pipeline register
@@ -33,6 +36,8 @@ reg br_flag_stall_reg;
 wire br_flag_stall;
 wire br_rs_stall;
 // wire if_id_flush;
+
+
 
 wire branch_condition;
 
@@ -49,36 +54,42 @@ assign l2u_stall =  ((id_ex_mem_read==1) &
 // condition-1 : previous instruction modifies flags
 always @ (*) begin
 	case(condition)
-		3'b000: br_flag_stall_reg = (~id_ex_flag_en[`FLAG_Z] | ~ex_mem_flag_en[`FLAG_Z])? 1'b1: 1'b0;								// Z=0
-		3'b001: br_flag_stall_reg = (id_ex_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_Z])? 1'b1: 1'b0;								// Z=1
+		3'b000: br_flag_stall_reg = (id_ex_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_Z]);								// Z=0
+		3'b001: br_flag_stall_reg = (id_ex_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_Z]);								// Z=1
 
 
-		3'b010: br_flag_stall_reg = ((~id_ex_flag_en[`FLAG_Z] & ~id_ex_flag_en[`FLAG_N]) | (~ex_mem_flag_en[`FLAG_Z] & ~ex_mem_flag_en[`FLAG_N]))? 1'b1: 1'b0;					// Z==N==0
+		3'b010: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] & ~id_ex_flag_en[`FLAG_N]) | (~ex_mem_flag_en[`FLAG_Z] & ~ex_mem_flag_en[`FLAG_N]));					// Z==N==0
 		
-        3'b011: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_N] | ex_mem_flag_en[`FLAG_N]))? 1'b1: 1'b0;								// N==1
+        3'b011: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_N] | ex_mem_flag_en[`FLAG_N]));								// N==1
 		
-        3'b100: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] | (~id_ex_flag_en[`FLAG_Z] & ~id_ex_flag_en[`FLAG_N])) | (ex_mem_flag_en[`FLAG_Z] | (~ex_mem_flag_en[`FLAG_Z] & ~ex_mem_flag_en[`FLAG_N])))? 1'b1: 1'b0;	// Z==1 or Z==N==0
-		3'b101: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] | id_ex_flag_en[`FLAG_N]) | (ex_mem_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_N]))? 1'b1: 1'b0;					// N==1 or Z==1
-		3'b110: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_V]) | (ex_mem_flag_en[`FLAG_V]))? 1'b1: 1'b0;								// V==1
+        3'b100: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] | (~id_ex_flag_en[`FLAG_Z] & ~id_ex_flag_en[`FLAG_N])) | (ex_mem_flag_en[`FLAG_Z] | (~ex_mem_flag_en[`FLAG_Z] & ~ex_mem_flag_en[`FLAG_N])));	// Z==1 or Z==N==0
+		3'b101: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] | id_ex_flag_en[`FLAG_N]) | (ex_mem_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_N]));					// N==1 or Z==1
+		3'b110: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_V]) | (ex_mem_flag_en[`FLAG_V]));								// V==1
 		3'b111: br_flag_stall_reg = 1'b0;													// Unconditional
 		default: br_flag_stall_reg = 1'b0;
 	endcase
 end
 
-assign br_flag_stall = br_flag_stall_reg;
+assign br_flag_stall = branch_condition & 1'b0;
 
 // condition-2 : previous instruction changes values in rs register
 assign br_rs_stall =    ((id_ex_reg_write) & (id_ex_rd != 4'b0000) & (if_id_rs == id_ex_rd))? 1'b1 :
                         (ex_mem_reg_write) & (ex_mem_rd != 4'b0000) & (if_id_rs == ex_mem_rd)? 1'b1 : 1'b0;
 
+wire out_l2u_stall, out_br_flag_stall, out_br_rs_stall, wire_if_id_flush;
+
+pldff #(.WIDTH(1)) l2u_stall_pldff (.d(l2u_stall), .q(out_l2u_stall), .wen(1'b1), .clk(clk), .rst(rst));
+pldff #(.WIDTH(1)) br_flag_stall_pldff (.d(br_flag_stall), .q(out_br_flag_stall), .wen(1'b1), .clk(clk), .rst(rst));
+pldff #(.WIDTH(1)) br_bs_stall_pldff (.d(1'b0), .q(out_br_rs_stall), .wen(1'b1), .clk(clk), .rst(rst));
+pldff #(.WIDTH(1)) if_id_flush_pldff (.d(wire_if_id_flush), .q(if_id_flush), .wen(1'b1), .clk(clk), .rst(rst));
 
 // stall the pipeline
-assign pc_wen = ((~l2u_stall) | (~br_flag_stall)| (~br_rs_stall))? 1'b1: 1'b0;
-assign if_id_wen = (~l2u_stall | ~br_flag_stall| ~br_rs_stall)? 1'b1: 1'b0;
+assign pc_wen = (out_l2u_stall | out_br_flag_stall| out_br_rs_stall)? 1'b0: 1'b1;
+assign if_id_wen = (out_l2u_stall | out_br_flag_stall| out_br_rs_stall)? 1'b0: 1'b1;
 
 // flush the instruction in IF stage -> flush if_id pipeline
-assign if_id_flush = (branch_condition)? 1'b1: 1'b0;
-assign control_hazard = branch_condition | ~if_id_flush;
+assign wire_if_id_flush = (branch_condition & (out_br_flag_stall & out_br_rs_stall))? 1'b1: 1'b0;
+assign control_hazard = (branch_condition | ~if_id_flush) ? 1'b1: 1'b0;
 
 endmodule
 
