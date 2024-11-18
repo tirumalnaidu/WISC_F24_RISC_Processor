@@ -67,10 +67,8 @@ end
 assign br_flag_stall = br_flag_stall_reg;
 
 // condition-2 : previous instruction changes values in rs register
-assign br_rs_stall =    ((id_ex_reg_write) & (id_ex_rd != 4'b0000)) ? 
-                        (if_id_rs == id_ex_rd)? 1'b1:
-                        (ex_mem_reg_write) ?
-                        (if_id_rs == ex_mem_rd)? 1'b1:1'b0:1'b0:1'b0;
+assign br_rs_stall =    ((id_ex_reg_write) & (id_ex_rd != 4'b0000) & (if_id_rs == id_ex_rd))? 1'b1 :
+                        (ex_mem_reg_write) & (ex_mem_rd != 4'b0000) & (if_id_rs == ex_mem_rd)? 1'b1 : 1'b0;
 
 
 // stall the pipeline
