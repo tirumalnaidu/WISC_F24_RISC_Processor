@@ -233,7 +233,7 @@ assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, if_id_instr[3:0]} <
 // ---------------------------
 
 // ----------- ID/EX Pipeline -------------
-wire id_ex_mem_read, id_ex_mem_write, id_ex_mem_to_reg, id_ex_write_reg, id_ex_alu_src, id_ex_pcs, id_ex_halt;
+wire id_ex_mem_read, id_ex_mem_write, id_ex_mem_to_reg, id_ex_write_reg, id_ex_alu_src, id_ex_pcs, id_ex_halt, id_ex_reg_dst;
 wire [15:0] id_ex_pc_nxt, id_ex_sign_ext_imm, id_ex_src1_data, id_ex_src2_data;
 wire [3:0] id_ex_opcode, id_ex_src_reg1, id_ex_src_reg2, id_ex_dst_reg;    
 wire [2:0] id_ex_flag_en;
@@ -252,6 +252,7 @@ id_ex_pipe  id_ex_pipe_inst (
     .in_pcs(pcs),
     .in_halt(halt),
     .in_opcode(id_opcode),
+    .in_reg_dst(reg_dst),
 
     // IN - Flag related
     .in_flag_en(flag_en),
@@ -278,6 +279,7 @@ id_ex_pipe  id_ex_pipe_inst (
     .out_pcs(id_ex_pcs),
     .out_halt(id_ex_halt),
     .out_opcode(id_ex_opcode),
+    .out_reg_dst(id_ex_reg_dst),
 
     // OUT - Flag Related
     .out_flag_en(id_ex_flag_en),
@@ -302,8 +304,11 @@ id_ex_pipe  id_ex_pipe_inst (
 // ----------------------------------------
 
 // ---------- EX ------------
-assign forwardA_data = (~forwardA_ALU[1] & ~forwardA_ALU[0])? id_ex_src1_data: (~forwardA_ALU[1] & forwardA_ALU[0])? dst_data: ex_mem_alu_out;
-assign forwardB_data = (~forwardB_ALU[1] & ~forwardB_ALU[0])? id_ex_src2_data: (~forwardB_ALU[1] & forwardB_ALU[0])? dst_data: ex_mem_alu_out;
+// assign forwardA_data = (~forwardA_ALU[1] & ~forwardA_ALU[0])? id_ex_src1_data: (~forwardA_ALU[1] & forwardA_ALU[0])? dst_data: ex_mem_alu_out;
+// assign forwardB_data = (~forwardB_ALU[1] & ~forwardB_ALU[0])? id_ex_src2_data: (~forwardB_ALU[1] & forwardB_ALU[0])? dst_data: ex_mem_alu_out;
+
+assign forwardA_data = (forwardA_ALU == 2'b10) ? ex_mem_alu_out : (forwardA_ALU == 2'b01) ? dst_data : id_ex_src1_data;
+assign forwardB_data = (forwardB_ALU == 2'b10) ? ex_mem_alu_out : (forwardB_ALU == 2'b01) ? dst_data : id_ex_src2_data;
 
 assign alu_in1 = (id_ex_mem_read | id_ex_mem_write) ? (forwardA_data & 16'hFFFE) : forwardA_data;
 assign alu_in2 = id_ex_alu_src ? id_ex_sign_ext_imm : forwardB_data;
@@ -490,6 +495,8 @@ forward_unit fwd(
     .id_ex_rt(id_ex_src_reg2),
     .id_ex_rd(id_ex_dst_reg),
     .id_ex_write_reg(id_ex_write_reg),
+    .id_ex_reg_dst(id_ex_reg_dst),
+    .id_ex_alu_src(id_ex_alu_src),
 
     .ex_mem_rs(ex_mem_src_reg1),
     .ex_mem_rt(ex_mem_src_reg2),

@@ -9,6 +9,7 @@ module id_ex_pipe(
     input in_alu_src,
     input in_pcs,
     input in_halt,
+    input in_reg_dst,
     input [15:0] in_pc_nxt,
     input [2:0] in_flag_en,
     input [3:0] in_opcode,
@@ -25,6 +26,7 @@ module id_ex_pipe(
     output out_alu_src,
     output out_pcs,
     output out_halt,
+    output out_reg_dst,
     output [15:0] out_pc_nxt,
     output [2:0] out_flag_en,
     output [3:0] out_opcode,
@@ -44,6 +46,7 @@ pldff #(.WIDTH(1)) write_reg_pldff (.q(out_write_reg), .d(in_write_reg), .wen(en
 pldff #(.WIDTH(1)) alu_src_pldff (.q(out_alu_src), .d(in_alu_src), .wen(en), .clk(clk), .rst(rst));
 pldff #(.WIDTH(1)) pcs_pldff (.q(out_pcs), .d(in_pcs), .wen(en), .clk(clk), .rst(rst));
 pldff #(.WIDTH(1)) halt_pldff (.q(out_halt), .d(in_halt), .wen(en), .clk(clk), .rst(rst));
+pldff #(.WIDTH(1)) reg_dst_pldff (.q(out_reg_dst), .d(in_reg_dst), .wen(en), .clk(clk), .rst(rst));
 
 pldff #(.WIDTH(16)) pc_pldff (.q(out_pc_nxt), .d(in_pc_nxt), .wen(en), .clk(clk), .rst(rst));
 pldff #(.WIDTH(3)) flag_en_pldff (.q(out_flag_en), .d(in_flag_en), .wen(en), .clk(clk), .rst(rst));
