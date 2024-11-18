@@ -477,7 +477,7 @@ mem_wb_pipe  mem_wb_pipe_inst (
 // TODO: Shift pcs operation to ALU unit itself -> assign the value within ALU (and give output via alu_out); 
 // don't have to propagate PCS signal till here
 assign dst_data = (mem_wb_pcs)? mem_wb_pc_nxt: (mem_wb_mem_to_reg)? mem_wb_mem_data: mem_wb_alu_out;
-assign halt = mem_wb_halt;
+assign hlt = mem_wb_halt;
 // ---------------------------
 
 // Forwarding Unit
