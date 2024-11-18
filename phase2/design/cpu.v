@@ -35,6 +35,13 @@ wire [1:0] branch_type;
 wire [3:0] src_reg1, src_reg2, dst_reg;
 wire [15:0] src1_data, src2_data;
 
+// hazard unit
+wire pc_wen;
+wire if_id_wen;
+wire if_id_flush;
+wire control_hazard;
+
+
 // EX
 wire [2:0] flag, flag_en, flag_reg_out;
 wire [15:0] alu_in1, alu_in2, alu_out;
@@ -77,6 +84,7 @@ pc_update pc_up(.clk(clk),
                 .rst(rst), 
                 .pc_en(pc_wen),
                 .pc_in(pc_if_stage), 
+                .pc_wen(pc_wen),
                 .pc_out(pc_cur)
                 );
 
@@ -85,7 +93,7 @@ assign if_stage_hlt = &opcode;
 assign pc_hlt = pc_cur;
 addsub_16bit pc_incr(.a_in(pc_cur), .b_in(TWO), .is_sub(1'b0), .sum_out(pc_plus_two), .flag(/*unconnected*/));
 
-assign pc_if_stage = (/* TODO: from ctrl_hazard*/)? pc_id_stage: (if_stage_hlt)? pc_hlt: pc_plus_two;
+assign pc_if_stage = (/* TODO: from ctrl_hazard*/ control_hazard)? pc_id_stage: (if_stage_hlt)? pc_hlt: pc_plus_two;
 
 memory1c_instr #(   .DWIDTH(DWIDTH), 
                     .AWIDTH(AWIDTH)
@@ -110,8 +118,8 @@ wire [15:0] if_id_pc_nxt;
 // TODO: Comment - we need to propagate the flush to next pipeline stages also
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
-    .rst(rst),          //TODO: flush
-    .en(if_id_en),      //TODO: stall 
+    .rst(rst | if_id_flush),          //TODO: flush
+    .en(if_id_wen),      //TODO: stall 
     .in_instr(instr),
     .in_pc_nxt(pc_if_stage),
     .out_instr(if_id_instr),
@@ -125,6 +133,32 @@ if_id_pipe  if_id_pipe_inst (
 wire [3:0] id_opcode;
 assign id_opcode = if_id_instr[15:12];
 assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00;
+
+
+hazard_detection_unit hazard_unit(
+    .id_ex_mem_read(id_ex_mem_read),
+    .id_ex_reg_write(id_ex_mem_write),
+    .ex_mem_reg_write(ex_mem_write_reg),
+    .if_id_mem_write(mem_write),          // directly from control signal
+    .if_id_rs(src_reg1),
+    .if_id_rt(src_reg2),
+    .id_ex_rd(id_ex_dst_reg),
+    .ex_mem_rd(ex_mem_dst_reg),
+    .pc_wen(pc_wen),                  // to : pc_update -> write_enable signal to pc_update register
+    .if_id_wen(if_id_wen),               // to : if_id_pipe -> write_enable signal to the IF/ID. pipeline register
+    .branch(branch),
+    .branchr(branchr),
+    .opcode(if_id_instr[15:12]),
+
+    .id_ex_flag_en(id_ex_flag_en),
+    .ex_mem_flag_en(/*TODO*/),
+    .condtion(if_id_instr[11:9]),
+    .if_id_flush(if_id_flush),             // to : if_id_pipe -> flush the if_id pipeline register
+    .control_hazard(control_hazard)           // to : pc_if_stage mux -> on detecting a hazard, pc will contain branch address
+);
+
+
+
 
 pc_control pc_ctrl( .c(if_id_instr[11:9]),
                     .f(flag_reg_out),       //TODO: Should not use this flag_reg_out -> must use the one propagated till WB
@@ -299,6 +333,8 @@ ex_mem_pipe  ex_mem_pipe_inst (
 
     // IN - Flag
     // TODO: Add registers with respect to flags (enable and the computed flag values as well)
+
+
 
     // OUT - Control
     .out_mem_read(ex_mem_mem_read),

@@ -1,4 +1,4 @@
-`include "common/flags.vh"
+// `include "common/flags.vh"
 module hazard_detection_unit(
 
 // ---- control signals for load-to-use type stall ---- 
@@ -18,7 +18,7 @@ module hazard_detection_unit(
     input branch,
     input branchr,
     input [3:0] opcode,
-    input [3:0] condition,
+    // input [3:0] condition,
     input [2:0] id_ex_flag_en,
     input [2:0] ex_mem_flag_en,
     input [2:0] condtion,
