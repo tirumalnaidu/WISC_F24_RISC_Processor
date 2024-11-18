@@ -49,15 +49,11 @@ assign l2u_stall =  ((id_ex_mem_read==1) &
 // condition-1 : previous instruction modifies flags
 always @ (*) begin
 	case(condition)
-		3'b000: br_flag_stall_reg = (~id_ex_flag_en[`FLAG_Z] | ~ex_mem_flag_en[`FLAG_Z])? 1'b1: 1'b0;								// Z=0
+		3'b000: br_flag_stall_reg = (id_ex_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_Z])? 1'b1: 1'b0;								// Z=0
 		3'b001: br_flag_stall_reg = (id_ex_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_Z])? 1'b1: 1'b0;								// Z=1
-
-
-		3'b010: br_flag_stall_reg = ((~id_ex_flag_en[`FLAG_Z] & ~id_ex_flag_en[`FLAG_N]) | (~ex_mem_flag_en[`FLAG_Z] & ~ex_mem_flag_en[`FLAG_N]))? 1'b1: 1'b0;					// Z==N==0
-		
+		3'b010: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] & id_ex_flag_en[`FLAG_N]) | (ex_mem_flag_en[`FLAG_Z] & ex_mem_flag_en[`FLAG_N]))? 1'b1: 1'b0;					// Z==N==0
         3'b011: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_N] | ex_mem_flag_en[`FLAG_N]))? 1'b1: 1'b0;								// N==1
-		
-        3'b100: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] | (~id_ex_flag_en[`FLAG_Z] & ~id_ex_flag_en[`FLAG_N])) | (ex_mem_flag_en[`FLAG_Z] | (~ex_mem_flag_en[`FLAG_Z] & ~ex_mem_flag_en[`FLAG_N])))? 1'b1: 1'b0;	// Z==1 or Z==N==0
+        3'b100: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] | (id_ex_flag_en[`FLAG_Z] & id_ex_flag_en[`FLAG_N])) | (ex_mem_flag_en[`FLAG_Z] | (ex_mem_flag_en[`FLAG_Z] & ex_mem_flag_en[`FLAG_N])))? 1'b1: 1'b0;	// Z==1 or Z==N==0
 		3'b101: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_Z] | id_ex_flag_en[`FLAG_N]) | (ex_mem_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_N]))? 1'b1: 1'b0;					// N==1 or Z==1
 		3'b110: br_flag_stall_reg = ((id_ex_flag_en[`FLAG_V]) | (ex_mem_flag_en[`FLAG_V]))? 1'b1: 1'b0;								// V==1
 		3'b111: br_flag_stall_reg = 1'b0;													// Unconditional
