@@ -1,7 +1,7 @@
 `include "common/flags.vh"
 module hazard_detection_unit(
 
-// ---- control signals for load-to-use type stall ----
+// ---- control signals for load-to-use type stall ---- 
     input id_ex_mem_read,
     input id_ex_reg_write,
     input ex_mem_reg_write,
