@@ -167,7 +167,7 @@ hazard_detection_unit hazard_unit(
     .opcode(if_id_instr[15:12]),
 
     .id_ex_flag_en(id_ex_flag_en),
-    .ex_mem_flag_en(/*TODO*/),
+    .ex_mem_flag_en(ex_mem_flag_en),
     .condtion(if_id_instr[11:9]),
     .if_id_flush(if_id_flush),             // to : if_id_pipe -> flush the if_id pipeline register
     .control_hazard(control_hazard)           // to : pc_if_stage mux -> on detecting a hazard, pc will contain branch address
