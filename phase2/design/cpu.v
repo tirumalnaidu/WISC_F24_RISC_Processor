@@ -94,7 +94,7 @@ wire stall;
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
                 .pc_in(pc_if_stage), 
-                .pc_wen(pc_wen),
+                .pc_wen(~stall),
                 .pc_out(pc_cur)
                 );
 
@@ -242,8 +242,8 @@ wire [2:0] id_ex_flag_en;
 
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
-    .rst(rst), //DONE: flush - use the flush propagated from if_id_stage (need to add)
-    .en(~stall), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
+    .rst(rst | stall), //DONE: flush - use the flush propagated from if_id_stage (need to add)
+    .en(1'b1), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
 
     // IN - Control
     .in_mem_read(mem_read),
