@@ -56,20 +56,19 @@ localparam ROR = 4'b0110;
 
 // For Branch stalls ---------------------------------------
 // ID/EX or EX/MEM has RAW dependence rd update; if in MEM/WB -> can forward it using register bypass
-assign rs_change = ((id_ex_reg_write) & (id_ex_rd != 4'b0000) & (if_id_rs == id_ex_rd)) | ((ex_mem_reg_write) & (ex_mem_rd != 4'b0000) & (if_id_rs == ex_mem_rd));
+//assign rs_change = ((id_ex_reg_write) & (id_ex_rd != 4'b0000) & (if_id_rs == id_ex_rd)) | ((ex_mem_reg_write) & (ex_mem_rd != 4'b0000) & (if_id_rs == ex_mem_rd));
 
-always@(*) begin
+/*always@(*) begin
     case(opcode)
         ADD, SUB, XOR, SLL, SRA, ROR: flag_change = 1;
         default:    flag_change = 0;
     endcase
-end
+end*/
 
 // ----------------------------------------------------------
 
 
 wire branch_condition;
-
 assign branch_condition = branch | branchr;
 
 // load-to-use stalls : COD pg314
@@ -81,7 +80,7 @@ assign branch_condition = branch | branchr;
 // branching stalls -> branch follows some instruction
 
 // condition-1 : previous instruction modifies flags
-always @ (*) begin
+/*always @ (*) begin
 	case(condition)
 		3'b000: br_flag_stall_reg = (id_ex_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_Z])? 1'b1: 1'b0;								    // Z=0
 		3'b001: br_flag_stall_reg = (id_ex_flag_en[`FLAG_Z] | ex_mem_flag_en[`FLAG_Z])? 1'b1: 1'b0;								    // Z=1
@@ -93,12 +92,13 @@ always @ (*) begin
 		3'b111: br_flag_stall_reg = 1'b0;													                                        // Unconditional
 		default: br_flag_stall_reg = 1'b0;
 	endcase
-end
+end*/
 
-assign br_flag_stall = branch_condition & br_flag_stall_reg & flag_change;
-assign br_rs_stall = branch_condition & rs_change;
+//assign br_flag_stall = branch_condition & br_flag_stall_reg & flag_change;
+//assign br_rs_stall = branch_condition & rs_change;
+//assign br_rs_stall = branch_condition;
 assign if_id_flush = branch_condition & br_taken;
-assign control_stall = br_flag_stall | br_rs_stall;
+//assign control_stall = br_flag_stall | br_rs_stall;
 
 // condition-2 : previous instruction changes values in rs register
 //assign br_rs_stall =    ((id_ex_reg_write) & (id_ex_rd != 4'b0000) & (if_id_rs == id_ex_rd))? 1'b1 :

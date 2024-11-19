@@ -95,7 +95,7 @@ wire stall;
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
                 .pc_in(pc_if_stage), 
-                .pc_wen(~stall),
+                .pc_wen(~stall | ~if_id_flush),
                 .pc_out(pc_cur)
                 );
 
@@ -147,9 +147,11 @@ if_id_pipe  if_id_pipe_inst (
 // ---------- ID ------------
 // Glue Logic for pc_control
 wire [3:0] id_opcode;
+wire halt_not_flush;
 assign id_opcode = if_id_instr[15:12];
 assign branch_type = (halt)? 2'b11:(pcs)? 2'b10:(branch & branchr)? 2'b01: 2'b00;
 
+assign halt_not_flush = halt & ~if_id_flush;
 
 hazard_detection_unit hazard_unit(
     .clk(clk),
@@ -181,7 +183,7 @@ hazard_detection_unit hazard_unit(
 
 
 pc_control pc_ctrl( .c(if_id_instr[11:9]),
-                    .f(mem_wb_flag),       //TODO: Should not use this flag_reg_out -> must use the one propagated till WB
+                    .f(flag_reg_out),       //TODO: Should not use this flag_reg_out -> must use the one propagated till WB
                     .i(if_id_instr[8:0]),
                     .target(src1_data),
                     .branch(branch),
@@ -246,7 +248,7 @@ wire [2:0] id_ex_flag_en;
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
     .rst(rst | stall), //DONE: flush - use the flush propagated from if_id_stage (need to add)
-    .en(~control_stall), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
+    .en(1'b1), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
 
     // IN - Control
     .in_mem_read(mem_read),
@@ -255,7 +257,7 @@ id_ex_pipe  id_ex_pipe_inst (
     .in_write_reg(write_reg),
     .in_alu_src(alu_src),
     .in_pcs(pcs),
-    .in_halt(halt),
+    .in_halt(halt_not_flush),
     .in_opcode(id_opcode),
     .in_reg_dst(reg_dst),
 
@@ -352,9 +354,9 @@ always @(*) begin
 end*/
      
 // DONE: flag register for pc_control - shift to the end (@ WB stage)
-// dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(id_ex_flag_en[0]), .clk(clk), .rst(rst));
-// dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(id_ex_flag_en[1]), .clk(clk), .rst(rst));
-// dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rst(rst));
+dff ff0(.q(flag_reg_out[0]), .d(flag[0]), .wen(id_ex_flag_en[0]), .clk(clk), .rst(rst));
+dff ff1(.q(flag_reg_out[1]), .d(flag[1]), .wen(id_ex_flag_en[1]), .clk(clk), .rst(rst));
+dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rst(rst));
 
 // ---------------------------
 
