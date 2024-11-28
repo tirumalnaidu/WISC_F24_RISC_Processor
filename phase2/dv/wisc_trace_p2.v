@@ -9,15 +9,15 @@ module wisc_trace_p2 #(
     input rst,
     input Halt,
     input [ARCH_WIDTH-1:0] PC,
-    input [ARCH_WIDTH-1:0] Inst,  // The 16 bit instruction word
-    input RegWrite,  // True if RF is being written
-    input [REG_WIDTH-1:0] WriteRegister,  // What 4-bit register number is written when RegWrite==1
-    input [ARCH_WIDTH-1:0] WriteData,  // 16-bit Data being written to the RF when RegWrite==1
-    input MemRead,  // True if memory is being read
-    input MemWrite,  // True if memory is being written
-    input [ARCH_WIDTH-1:0] MemAddress,  // DataMemAddress being written
-    input [ARCH_WIDTH-1:0] MemDataIn,  // Data being written when RegWrite==1
-    input [ARCH_WIDTH-1:0] MemDataOut  // Data being read when RegRead==1
+    input [ARCH_WIDTH-1:0] Inst,                // The 16 bit instruction word
+    input RegWrite,                             // True if RF is being written
+    input [REG_WIDTH-1:0] WriteRegister,        // What 4-bit register number is written when RegWrite==1
+    input [ARCH_WIDTH-1:0] WriteData,           // 16-bit Data being written to the RF when RegWrite==1
+    input MemRead,                              // True if memory is being read
+    input MemWrite,                             // True if memory is being written
+    input [ARCH_WIDTH-1:0] MemAddress,          // DataMemAddress being written
+    input [ARCH_WIDTH-1:0] MemDataIn,           // Data being written when RegWrite==1
+    input [ARCH_WIDTH-1:0] MemDataOut           // Data being read when RegRead==1
 );
 
   // Setup

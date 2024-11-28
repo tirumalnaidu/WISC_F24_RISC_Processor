@@ -2,9 +2,12 @@ module if_id_pipe(
     input clk,
     input rst,
     input en,
+    
     input flush_in,
     input [15:0] in_instr,
     input [15:0] in_pc_nxt,
+
+
     output [15:0] out_instr,
     output [15:0] out_pc_nxt
 );

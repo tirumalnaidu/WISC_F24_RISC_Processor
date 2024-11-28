@@ -2,6 +2,7 @@ module id_ex_pipe(
     input clk,
     input rst,
     input en,
+    
     input in_mem_read,
     input in_mem_write,
     input in_mem_to_reg,
@@ -19,6 +20,8 @@ module id_ex_pipe(
     input [15:0] in_sign_ext_imm,
     input [15:0] in_src1_data,
     input [15:0] in_src2_data,
+
+
     output out_mem_read,
     output out_mem_write,
     output out_mem_to_reg,

@@ -17,6 +17,8 @@ module ex_mem_pipe(
     input [15:0] in_pc_nxt,
     input [2:0] in_flag,
     input [2:0] in_flag_en,
+
+    
     output out_mem_read,
     output out_mem_write,
     output out_mem_to_reg,

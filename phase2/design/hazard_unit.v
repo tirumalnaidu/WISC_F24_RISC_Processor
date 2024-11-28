@@ -34,29 +34,14 @@ module hazard_detection_unit(
     output stall
 );
 
-wire l2u_stall;
-reg br_flag_stall_reg;
-wire br_flag_stall;
-wire br_rs_stall;
-// wire if_id_flush;
+
 
 // --- Stall for everything other than branch ----
 assign stall = (id_ex_mem_read) & ((id_ex_rd == if_id_rs) | (id_ex_rd == if_id_rt));
 // ----------------------------------------
 
-reg flag_change;
-wire rs_change;
 
-localparam ADD = 4'b0000;
-localparam SUB = 4'b0001;
-localparam XOR = 4'b0010;
-localparam SLL = 4'b0100;
-localparam SRA = 4'b0101;
-localparam ROR = 4'b0110;
-
-wire branch_condition;
-assign branch_condition = branch | branchr;
-assign if_id_flush = branch_condition & br_taken;
+assign if_id_flush = branch & br_taken;
 
 
 endmodule
