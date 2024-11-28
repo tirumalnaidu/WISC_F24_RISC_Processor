@@ -74,6 +74,23 @@ wire br_taken;
 //
 
 
+wire id_ex_mem_read, id_ex_mem_write, id_ex_mem_to_reg, id_ex_write_reg, id_ex_alu_src, id_ex_pcs, id_ex_halt, id_ex_reg_dst;
+wire [15:0] id_ex_pc_nxt, id_ex_sign_ext_imm, id_ex_src1_data, id_ex_src2_data;
+wire [3:0] id_ex_opcode, id_ex_src_reg1, id_ex_src_reg2, id_ex_dst_reg;    
+wire [2:0] id_ex_flag_en;
+
+
+wire ex_mem_mem_read, ex_mem_mem_write, ex_mem_mem_to_reg, ex_mem_write_reg, ex_mem_pcs, ex_mem_halt;
+wire [15:0] ex_mem_alu_out, ex_mem_src1_data, ex_mem_src2_data, ex_mem_pc_nxt;
+wire [3:0] ex_mem_src_reg1, ex_mem_src_reg2, ex_mem_dst_reg;    
+wire [2:0] ex_mem_flag, ex_mem_flag_en;
+
+wire [15:0] mem_wb_alu_out, mem_wb_mem_data, mem_wb_pc_nxt;
+wire [3:0] mem_wb_src_reg1, mem_wb_src_reg2, mem_wb_dst_reg;
+wire mem_wb_mem_to_reg, mem_wb_write_reg, mem_wb_pcs, mem_wb_hlt;
+wire [2:0] mem_wb_flag, mem_wb_flag_en;
+
+
 // Forwarding Select Lines
 wire [1:0] forwardA_ALU;
 wire [1:0] forwardB_ALU;
@@ -240,10 +257,7 @@ assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, if_id_instr[3:0]} <
 // ---------------------------
 
 // ----------- ID/EX Pipeline -------------
-wire id_ex_mem_read, id_ex_mem_write, id_ex_mem_to_reg, id_ex_write_reg, id_ex_alu_src, id_ex_pcs, id_ex_halt, id_ex_reg_dst;
-wire [15:0] id_ex_pc_nxt, id_ex_sign_ext_imm, id_ex_src1_data, id_ex_src2_data;
-wire [3:0] id_ex_opcode, id_ex_src_reg1, id_ex_src_reg2, id_ex_dst_reg;    
-wire [2:0] id_ex_flag_en;
+
 
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
@@ -361,10 +375,6 @@ dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rs
 // ---------------------------
 
 // ----------- EX-MEM PIPELINE--------------
-wire ex_mem_mem_read, ex_mem_mem_write, ex_mem_mem_to_reg, ex_mem_write_reg, ex_mem_pcs, ex_mem_halt;
-wire [15:0] ex_mem_alu_out, ex_mem_src1_data, ex_mem_src2_data, ex_mem_pc_nxt;
-wire [3:0] ex_mem_src_reg1, ex_mem_src_reg2, ex_mem_dst_reg;    
-wire [2:0] ex_mem_flag, ex_mem_flag_en;
 
 ex_mem_pipe  ex_mem_pipe_inst (
     .clk(clk),
@@ -445,10 +455,6 @@ memory1c_data #(.DWIDTH(DWIDTH),
 // ---------------------------
 
 // ----------- MEM-WB Pipeline -------------
-wire [15:0] mem_wb_alu_out, mem_wb_mem_data, mem_wb_pc_nxt;
-wire [3:0] mem_wb_src_reg1, mem_wb_src_reg2, mem_wb_dst_reg;
-wire mem_wb_mem_to_reg, mem_wb_write_reg, mem_wb_pcs, mem_wb_hlt;
-wire [2:0] mem_wb_flag, mem_wb_flag_en;
 
 mem_wb_pipe  mem_wb_pipe_inst (
     .clk(clk),
