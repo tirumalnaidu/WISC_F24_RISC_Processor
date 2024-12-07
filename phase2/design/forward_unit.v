@@ -35,7 +35,7 @@ wire i_format_instr;
 
 //assign i_format_instr = id_ex_write_reg & id_ex_alu_src & id_ex_reg_dst;
 
-// Ex-to-Ex forwarding
+// ------------------------------- Ex-to-Ex forwarding -------------------------------
 // if(EX/MEM.RegWrite && EX/MEM.Rd != $0 && EX/MEM.Rd == ID/EX.Rs/Rt)
 // assign ex_ex_bypass_condition_A = (ex_mem_write_reg) & (|ex_mem_rd) & ~|(ex_mem_rd ^ id_ex_rs);
 // assign ex_ex_bypass_condition_B = (ex_mem_write_reg) & (|ex_mem_rd) & ~|(ex_mem_rd ^ id_ex_rt);
@@ -43,7 +43,9 @@ assign ex_ex_bypass_condition_A = ((ex_mem_write_reg) & (ex_mem_rd != 0) & (ex_m
 assign ex_ex_bypass_condition_B = ((ex_mem_write_reg) & (ex_mem_rd != 0) & (ex_mem_rd == id_ex_rt)) ? 1'b1 : 1'b0;
 
 
-// Mem-to-Ex forwarding
+
+
+// ------------------------------- Mem-to-Ex forwarding -------------------------------
 // if(MEM/WB.RegWrite && MEM/WB.Rd != $0 && MEM/WB.Rd == ID/EX.Rs/Rt)
 // assign mem_ex_bypass_condition_A = (mem_wb_write_reg) & (|mem_wb_rd) & ~|(mem_wb_rd ^ id_ex_rs) & ~ex_ex_bypass_condition_A;
 // assign mem_ex_bypass_condition_B = (mem_wb_write_reg) & (|mem_wb_rd) & ~|(mem_wb_rd ^ id_ex_rt) & ~ex_ex_bypass_condition_B;

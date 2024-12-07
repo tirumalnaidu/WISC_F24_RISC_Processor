@@ -1,6 +1,24 @@
-1. Do we need the reg_dst signal ? No -> Not used anywhere
+Important Conceptual Points 
+
+1. Writes to all the flip-flops happen @posedge of clock
+2. reset of any flip-flop can happen asynchronously
+3. enable signal on the memories : should be high for any memory operation to take place.
+    NOTE : enable is NOT the write-enable for the memories
+
+
+-------------------------------------------------
+1. flush in the id/ex pipeline ??
 2. pc_wen in pc register
 3. halt_not_flush
 4. writing to the register happens at clock
 5. writing to zero register in stall updates flags 
 6. tmp_instr is redundant in IF/ID pipe
+7. what does the memory 'enable' signal do ?
+
+
+
+
+
+// ---- TODO ----
+
+1. Remove flush_in from if_id_pipe
