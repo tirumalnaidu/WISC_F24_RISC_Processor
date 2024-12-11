@@ -1,6 +1,6 @@
-module shifter_6_64(
+module shifter_3_8(
     input [7:0]  shift_in,  // data to be shifted
-    input [5:0]   shift_val, // 6-bit shift amount
+    input [2:0]   shift_val, // 6-bit shift amount
     output [7:0] shift_out  // data result of shift
 );
 
