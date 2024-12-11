@@ -7,7 +7,7 @@ module cache_cell (
     output data_out
 );
   wire q;
-  assign data_out = (enable & ~wen) ? q : 1'bz;
+  assign data_out = enable ? q : 1'bz;
   dff dffm (
       .q  (q),
       .d  (data_in),
