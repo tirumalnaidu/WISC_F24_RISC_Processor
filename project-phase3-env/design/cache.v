@@ -124,7 +124,7 @@ assign LRU_way0_in = (tag_match_way0)? 1'b1 :
                      (tag_match_way1)? 1'b0 : LRU_way0_out;
 
 
-assign metadata_way0_in = (~miss_detected)? {metadata_way0_in[7:2], LRU_way0_in, 1'b1} : {tag, LRU_way0_in, 1'b1};
+assign metadata_way0_in = (~miss_detected)? {metadata_way0_out[7:2], LRU_way0_in, 1'b1} : {tag, LRU_way0_in, 1'b1};
 assign metadata_way1_in = {tag, 1'bz, 1'b1};              // should the LRU bit be z or x
 
 // -------------------------------- storage modules of cache.v --------------------------------
