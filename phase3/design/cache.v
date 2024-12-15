@@ -74,7 +74,7 @@ wire [3:0] offset;                  // correct value of offset
 // -------------------------------- Inputs to the modules --------------------------------
 assign tag = address_in[15:10];
 assign index = address_in[9:4];
-assign addr_offset = address_in[3:1];
+assign addr_offset = address_in[3:1];    // NOTE: using only the top-3 bits of the offset
 
 
 // ---- counter logic ----

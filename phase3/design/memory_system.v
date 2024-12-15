@@ -80,11 +80,11 @@ cache d_cache(
 cache_fill_fsm  cache_fill_fsm_inst (
     .clk(clk),
     .rst(rst),
-    .miss_detected(miss_detected),
-    .miss_address(miss_address),
+    .miss_detected(cache_miss_detected),
+    .miss_address(cache_miss_address),
     .fsm_busy(fsm_busy),
-    .fsm_data_wen(fsm_data_wen),
-    .fsm_tag_wen(fsm_tag_wen),
+    .fsm_data_wen(cache_fsm_data_wen),
+    .fsm_tag_wen(cache_fsm_tag_wen),
     .memory_address(fsm_miss_address),
     .memory_data_valid(memory_data_valid)
   );  
