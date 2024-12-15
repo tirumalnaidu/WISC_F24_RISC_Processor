@@ -50,7 +50,7 @@ module tb_memory_system();
         #10 
         mem_en = 1;
         mem_write = 1;
-        addr_in = 16'hFFFE;
+        addr_in = 16'h0000;
         data_in = 16'hABCD;
 
         #200; 
