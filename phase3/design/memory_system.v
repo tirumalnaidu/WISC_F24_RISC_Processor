@@ -10,7 +10,8 @@ module memory_system #(
     input [AWIDTH-1:0] addr_in,                 // from instruction
     input [DWIDTH-1:0] data_in,                 // from the SW instruction 
 
-    output [DWIDTH-1:0] data_out,               // for all instructions -> select b/w d-cache/i-cache
+    output [DWIDTH-1:0] instruction_out,              // instruction output from i-cache
+    output [DWIDTH-1:0] data_out,               // data output from d-cache
     output d_cache_stall,                       // stalls full processor 
     output i_cache_stall                        // stalls only the IF stage
 );
@@ -49,6 +50,12 @@ assign memory_data_in = data_in;
 assign memory_addr_in = (i_cache_miss_detected | d_cache_miss_detected) ? miss_address : addr_in
 
 assign d_cache_data_in = (d_cache_miss_detected)? memory_data_out : data_in;
+
+
+assign i_cache_stall = i_cache_miss_detected;
+assign d_cache_stall = d_cache_miss_detected;
+assign data_out = (rd & ~d_cache_miss_detected)? d_cache_data_out : 16'hzzzz;
+assign instruction_out = (~i_cache_miss_detected)? i_cache_data_out : 16'hzzzz;
 
 
 // ######################################## Instantiations ########################################
