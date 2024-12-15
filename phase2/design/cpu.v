@@ -66,7 +66,8 @@ wire branchr;                           // opcode = 1101
 wire pcs;                               // opcode = 1110
 wire halt;                              // opcode = 1111
 
-wire [1:0] branch_type;                 // determines type of control group instruction, else 2'b00
+wire [1:0] branch_type;                 // selects between halt/pcs/branchr, else 2'b00
+                                        // used only in the pc_control unit
 
 // Register File
 wire [3:0] src_reg1;                    // rs
@@ -178,8 +179,8 @@ assign pc_if_stage = (if_id_flush)? pc_branch:
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
                 .pc_in(pc_if_stage), 
-                .pc_wen(~stall | ~if_id_flush),    
-                
+                .pc_wen(~stall | ~if_id_flush),     // stall & flush are never generated together
+                                                    // on stall -> pc gives out the same old pc           
                 // OUT
                 .pc_out(pc_cur)
                 ); 
@@ -208,7 +209,7 @@ assign pc = pc_cur;
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
     .rst(rst),        
-    .en(~stall),       
+    .en(~stall),                                // wen=0, when stall condition
     .flush_in(if_id_flush),
     .in_instr(instr),
     .in_pc_nxt(pc_if_stage),
