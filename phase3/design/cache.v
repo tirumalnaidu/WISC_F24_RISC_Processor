@@ -1,6 +1,6 @@
-`include "./common/cla_adder_4bit.v"
-`include "shifter_3_8.v"
-`include "shifter_6_64.v"
+// `include "./common/cla_adder_4bit.v"
+// `include "shifter_3_8.v"
+// `include "shifter_6_64.v"
 // `include "../ip/*.v"
 
 module cache (
@@ -173,8 +173,7 @@ metadata_way_array m1(
     .data_out(metadata_way1_out)
 );
 
-assign miss_detected = (tag_match_way0)? 1'b0 : 
-                       (tag_match_way1)? 1'b0 : 1'b1;
+assign miss_detected = (tag_match_way0 & tag_match_way1) ? 1'b0 : 1'b1;
 
 assign miss_address =  {address_in[15:4], {4{1'b0}}};
 
