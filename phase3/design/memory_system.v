@@ -17,14 +17,14 @@ module memory_system #(
 
 // --------------------- for main_memory ---------------------
 wire memory_data_valid;
-// wire [AWIDTH-1:0] memory_addr_in;
+wire [AWIDTH-1:0] memory_addr_in;
 wire [DWIDTH-1:0] memory_data_in;
 wire [DWIDTH-1:0] memory_data_out;
 
 // --------------------- for i_cache ---------------------
 
 wire i_cache_miss_detected;
-wire [AWIDTH-1:0] i_cache_miss_addr;
+wire [AWIDTH-1:0] i_cache_miss_address;
 wire [DWIDTH-1:0] i_cache_data_out;
 wire i_cache_fsm_data_wen;
 wire i_cache_fsm_tag_wen;
@@ -32,29 +32,38 @@ wire i_cache_fsm_tag_wen;
 // --------------------- for d_cache ---------------------
 
 wire d_cache_miss_detected;
-wire [AWIDTH-1:0] d_cache_miss_addr;
+wire [AWIDTH-1:0] d_cache_miss_address;
 wire [DWIDTH-1:0] d_cache_data_out;
+wire [DWIDTH-1:0] d_cache_data_in;
 wire d_cache_fsm_data_wen;
 wire d_cache_fsm_tag_wen;
 
 // --------------------- for cache_fill_fsm ---------------------
 wire [AWIDTH-1:0] miss_address;
-// wire miss_address;
 
+// ################################################################################################
 assign memory_data_in = data_in;
 
+// on a cache hit : write to addr_in
+// on a cache miss : read from miss_address
+assign memory_addr_in = (i_cache_miss_detected | d_cache_miss_detected) ? miss_address : addr_in
+
+assign d_cache_data_in = (d_cache_miss_detected)? memory_data_out : data_in;
+
+
+// ######################################## Instantiations ########################################
 
 memory4c #(.DWIDTH(DWIDTH),
            .AWIDTH(AWIDTH)
 ) main_memory(
-    .data_in(memory_data_in),                   // from d-cache only
-    .addr(miss_address),                        // only on miss -> either from d-cache / i-cache
+    .data_in(memory_data_in),                       // for SW instruction
+    .addr(memory_addr_in),                          // output from fsm OR SW instruction
     .enable(enable),
-    .wr(wr & ~d_cache_miss_detected),           // from the SW instruction
+    .wr(wr & ~d_cache_miss_detected),               // from the SW instruction
     .clk(clk),
     .rst(rst),
     /*OUT*/
-    .data_out(memory_data_out),                 // goes to d-cache & i-cache*
+    .data_out(memory_data_out),                     // goes to d-cache & i-cache*
     .data_valid(memory_data_valid)
 );
 
@@ -65,12 +74,12 @@ cache d_cache(
     .rden(rd),                                      // LW instruction generates this rden
     .fsm_data_wen(d_cache_fsm_data_wen),            // FSM generated data array write-enable 
     .fsm_tag_wen(d_cache_fsm_tag_wen),              // FSM generated metadata array write-enable 
-    .data_in(memory_data_out | data_in),            // either from SW insns or memory4c
+    .data_in(d_cache_data_in),                      // either from SW insns or memory4c ?????
     .address_in(addr_in),                           // from input to memory_system
     /*OUT*/ 
     .data_out(d_cache_data_out),                    // d-cache data output ONlY on cache-hit
     .miss_detected(d_cache_miss_detected),          // indicates d-cache miss
-    .miss_address(d_cache_miss_addr)                // starting address of the block to be brought into cache
+    .miss_address(d_cache_miss_address)                // starting address of the block to be brought into cache
 );
 
 cache i_cache(
@@ -85,7 +94,7 @@ cache i_cache(
     /*OUT*/ 
     .data_out(i_cache_data_out),                    // d-cache data output ONlY on cache-hit
     .miss_detected(i_cache_miss_detected),          // indicates d-cache miss
-    .miss_address(i_cache_miss_addr)                // starting address of the block to be brought into cache
+    .miss_address(i_cache_miss_address)                // starting address of the block to be brought into cache
 );
 
 cache_fill_fsm cache_fill(
@@ -102,7 +111,7 @@ cache_fill_fsm cache_fill(
   .d_cache_fsm_tag_wen(d_cache_fsm_tag_wen),
   .i_cache_fsm_data_wen(i_cache_fsm_data_wen), 
   .i_cache_fsm_tag_wen(i_cache_fsm_tag_wen),  
-  .memory_address(miss_address),                  // sent to memory4c
+  .memory_address(miss_address),                  // sent to memory4c -> select b/w correct miss_address
 //   .memory_data(memory_data), 
   
 );
