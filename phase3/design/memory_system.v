@@ -41,6 +41,7 @@ wire d_cache_fsm_tag_wen;
 
 // --------------------- for cache_fill_fsm ---------------------
 wire [AWIDTH-1:0] miss_address;
+wire fsm_busy;
 
 // ################################################################################################
 assign memory_data_in = data_in;
@@ -118,7 +119,8 @@ cache_fill_fsm cache_fill(
   .d_cache_fsm_tag_wen(d_cache_fsm_tag_wen),
   .i_cache_fsm_data_wen(i_cache_fsm_data_wen), 
   .i_cache_fsm_tag_wen(i_cache_fsm_tag_wen),  
-  .memory_address(miss_address),                  // sent to memory4c -> select b/w correct miss_address
+  .memory_address(miss_address),                  // sent to memory4c -> select b/w correct miss_address in fsm
+  .fsm_busy(fsm_busy)
 //   .memory_data(memory_data), 
   
 );
