@@ -2,6 +2,9 @@
 
 module tb_memory_system();
 
+    parameter AWIDTH = 16;
+    parameter DWIDTH = 16;
+
     reg clk;
     reg rst;
     reg mem_write;
@@ -20,7 +23,6 @@ module tb_memory_system();
         .clk(clk),
         .rst(rst),
         .mem_write(mem_write),
-        .mem_read(mem_read),
         .mem_en(mem_en),
         .addr_in(addr_in),
         .data_in(data_in),
@@ -40,18 +42,40 @@ module tb_memory_system();
         clk = ~clk;
     end
 
+    task read_mem(input [AWIDTH-1:0] addr);
+    begin
+        @(posedge clk);
+        mem_en = 1'b1;
+        mem_write = 1'b0;
+        addr_in = addr;
+    end
+    endtask
+
+    task write_mem(input [AWIDTH-1:0] addr, input [DWIDTH-1:0] data);
+    begin
+        @(posedge clk);
+        mem_en = 1'b1;
+        mem_write = 1'b1;
+        addr_in = addr;
+        data_in = data;
+    end
+    endtask
+
     initial begin
         #20 
         rst = 0;
         mem_write = 0;
-        mem_read = 0;
         mem_en = 0;
 
-        #10 
-        mem_en = 1;
-        mem_write = 1;
-        addr_in = 16'h0000;
-        data_in = 16'hABCD;
+        read_mem(16'h0002);
+        //read_mem();
+        //read_mem();
+
+        //#10 
+        //mem_en = 1;
+        //mem_write = 1;
+        //addr_in = 16'h0000;
+        //data_in = 16'hABCD;
 
         #200; 
 
