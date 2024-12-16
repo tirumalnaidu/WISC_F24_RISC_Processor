@@ -56,11 +56,7 @@ wire fsm_busy;
 // on a cache hit : write to addr_in
 // on a cache miss : read from miss_address
 assign memory_addr_in = (icache_miss_detected | dcache_miss_detected) ? fsm_miss_address : (~dcache_miss_detected) ? data_addr_in: 16'h0000;
-
-
-
-assign dcache_data_in = (dcache_miss_detected)? memory_data_out : data_in;
-
+assign dcache_data_in = (mem_write & dcache_miss_detected)? memory_data_out : data_in;
 
 assign icache_miss_stall = icache_miss_detected;
 assign dcache_miss_stall = dcache_miss_detected;
@@ -91,10 +87,10 @@ cache i_cache(
     .clk(clk),
     .rst(rst),
     .wen(1'b0),                        // SW instruction generates this wen
-    .rden(1'b1),                        // LW instruction generates this rden
+    .rden(1'b0),                        // LW instruction generates this rden
     .fsm_data_wen(icache_fsm_data_wen),            // FSM generated data array write-enable 
     .fsm_tag_wen(icache_fsm_tag_wen),              // FSM generated metadata array write-enable 
-    .data_in(),                      // either from SW insns or memory4c ?????
+    .data_in(/*unconnected*/),                      // either from SW insns or memory4c ?????
     .address_in(instr_addr_in),                         // from input to memory_system
     /*OUT*/ 
     .data_out(icache_data_out),                    // d-cache data output ONlY on cache-hit
