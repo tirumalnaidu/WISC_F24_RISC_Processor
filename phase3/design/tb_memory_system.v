@@ -8,12 +8,15 @@ module tb_memory_system();
     reg clk;
     reg rst;
     reg mem_write;
-    reg mem_read;
     reg mem_en;
-    reg [15:0] addr_in;
+    reg [15:0] instr_addr_in;
+    reg [15:0] data_addr_in;
+
     reg [15:0] data_in;
+    wire [15:0] instr_out;
     wire [15:0] data_out;
-    wire cache_miss_stall;
+    wire icache_miss_stall;
+    wire dcache_miss_stall;
 
     memory_system # (
         .DWIDTH(16),
@@ -24,21 +27,37 @@ module tb_memory_system();
         .rst(rst),
         .mem_write(mem_write),
         .mem_en(mem_en),
-        .addr_in(addr_in),
+        .instr_addr_in(instr_addr_in),
+        .data_addr_in(data_addr_in),
         .data_in(data_in),
+        .instr_out(instr_out),
         .data_out(data_out),
-        .cache_miss_stall(cache_miss_stall)
+        .icache_miss_stall(icache_miss_stall),
+        .dcache_miss_stall(dcache_miss_stall)
       );
 
-    task read_mem(input [AWIDTH-1:0] addr, input miss);
+    task i_read_mem(input [AWIDTH-1:0] addr, input miss);
+    begin
+        @(posedge clk);
+        instr_addr_in = addr;
+
+        if(miss) begin
+            @(negedge icache_miss_stall);
+        end   
+
+        repeat(3) @(posedge clk);
+    end
+    endtask
+
+    task d_read_mem(input [AWIDTH-1:0] addr, input miss);
     begin
         @(posedge clk);
         mem_en = 1'b1;
         mem_write = 1'b0;
-        addr_in = addr;
+        data_addr_in = addr;
 
         if(miss) begin
-            @(negedge cache_miss_stall);
+            @(negedge dcache_miss_stall);
         end   
 
         repeat(3) @(posedge clk);
@@ -47,16 +66,16 @@ module tb_memory_system();
     end
     endtask
 
-    task write_mem(input [AWIDTH-1:0] addr, input [DWIDTH-1:0] data, input miss);
+    task d_write_mem(input [AWIDTH-1:0] addr, input [DWIDTH-1:0] data, input miss);
     begin
         @(posedge clk);
         mem_en = 1'b1;
         mem_write = 1'b1;
-        addr_in = addr;
+        data_addr_in = addr;
         data_in = data;
 
         if(miss) begin
-            @(negedge cache_miss_stall);
+            @(negedge dcache_miss_stall);
         end
 
         repeat(3) @(posedge clk);
@@ -82,15 +101,19 @@ module tb_memory_system();
     initial begin
         mem_write = 0;
         mem_en = 0;
-        addr_in = 16'h0000;
+        instr_addr_in = 16'h0000;
+        data_addr_in = 16'h0000;
         data_in = 16'h0000;
         #20;
 
-        write_mem(16'h0000, 16'hABCD, 1'b1);
+        // i_read_mem(16'h0000, 1'b1);
 
-        write_mem(16'h0100, 16'hFF00, 1'b1);
+        d_write_mem(16'h0000, 16'hABCD, 1'b1);
+        d_write_mem(16'h0002, 16'h1234, 1'b0);
 
-        read_mem(16'h0000, 1'b0);
+        d_write_mem(16'h0100, 16'hFF00, 1'b1);
+
+        d_read_mem(16'h0000, 1'b0);
 
         $finish;
     end

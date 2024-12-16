@@ -1,18 +1,22 @@
 module cache_fill_fsm(
   input clk,
   input rst, 
-  input miss_detected, 
-  input [15:0] miss_address, 
-  output fsm_busy, 
-  output fsm_data_wen, 
-  output fsm_tag_wen, 
+  input dcache_miss_detected, 
+  input icache_miss_detected, 
+  input [15:0] dcache_miss_address, 
+  input [15:0] icache_miss_address, 
+  output dcache_fsm_data_wen, 
+  output dcache_fsm_tag_wen, 
+  output icache_fsm_data_wen, 
+  output icache_fsm_tag_wen, 
+
   output [15:0] memory_address, 
-  input [15:0] memory_data, 
   input memory_data_valid 
 );
 
 // state -> 0: IDLE, 1: WAIT
-wire state, next_state;
+wire i_state, i_next_state;
+wire d_state, d_next_state;
 
 wire start_count;
 
@@ -20,8 +24,7 @@ wire start_count;
 wire [11:0] send_read;
 wire shift_reg_start;
 
-wire [3:0] addr_count, addr_count_incr;
-wire mem_en;
+wire [2:0] addr_count, addr_count_incr;
 
 // replace this counter with a 12-bit shift register 
 // cla_adder_4bit byte_count_incr(
@@ -33,19 +36,19 @@ wire mem_en;
 //                   .ovfl()
 // );
 
-assign shift_reg_start = ~state & miss_detected;
+assign shift_reg_start = ~d_next_state & (icache_miss_detected | dcache_miss_detected); 
  
 shift_register #(.WIDTH(12)) 
                       shift_reg_inst(
                         .clk(clk),
                         .rst(rst),
                         .start(shift_reg_start),
-                        .en(miss_detected),
+                        .en(icache_miss_detected | dcache_miss_detected),
                         .shift_reg_out(send_read)
 );
 
 cla_adder_4bit addr_incr(
-                  .a_in({1'b0, memory_address[3:1]}),
+                  .a_in({1'b0,memory_address[3:1]}),
                   .b_in(4'h1),
                   .carry_in(1'b0),
                   .adder_out(addr_count_incr),
@@ -53,25 +56,41 @@ cla_adder_4bit addr_incr(
                   .ovfl()
 );
 
-dff state_dff(.clk(clk), .rst(rst), .d(next_state), .q(state), .wen(1'b1));
+dff i_state_dff(.clk(clk), .rst(rst), .d(i_next_state), .q(i_state), .wen(1'b1));
+dff d_state_dff(.clk(clk), .rst(rst), .d(d_next_state), .q(d_state), .wen(1'b1));
 
-// dff byte_count_dff[3:0](.clk(clk), .rst(start_count), .d(byte_count_next), .q(byte_count), .wen(incr));
-dff addr_dff[3:0](.clk(clk), .rst(rst), .d(addr_count_incr), .q(addr_count), .wen(mem_en));
+dff addr_dff[2:0](.clk(clk), .rst(rst), .d(addr_count_incr), .q(addr_count), .wen(dcache_miss_detected | icache_miss_detected));
 
-assign mem_en = state ? (addr_count != 4'b1000) : (miss_detected ? 1'b1 : 1'b0);	
-// assign incr   = state ? ((memory_data_valid & (send_read != 12h'800)) ? 1'b1 : 1'b0) : 1'b0;
 
-assign memory_address = state ? {miss_address[15:4], addr_count << 1} : 
-                                      (miss_detected ? {miss_address[15:4], 4'h0} : {miss_address[15:4], addr_count << 1});
+//TODO:
+// if imiss before dmiss => consider dmiss
+// if i_state = 1 (busy) and we encounter a dcache_miss_detected = 1 -> 
+//        wait till send_read[7] == 1 and we can toggle d_next_state from 0 (idle) to 1 (busy)
 
-assign memory_data = memory_address;
 
-assign next_state   = state ? ((send_read == 12'h400) ? 1'b0 : 1'b1) : (miss_detected ? 1'b1 : 1'b0);
-assign fsm_busy     = state ? ((send_read != 12'h400) ? 1'b0 : 1'b1) : (miss_detected ? 1'b1 : 1'b0);
-assign start_count  = state ? 1'b0 : (miss_detected ? 1'b1 : 1'b0);
+// if d_state = 1 (busy) and we encounter a icache_miss_detected = 1 -> 
+//        
 
-assign fsm_data_wen = state ? ((memory_data_valid & (send_read != 12'h400)) ? 1'b1 : 1'b0) : 1'b0;
-assign fsm_tag_wen  = state ? ((send_read == 12'h400) ? 1'b1 : 1'b0) : 1'b0;
+wire [15:0] i_mem_addr, d_mem_addr;
+
+// TODO
+assign i_mem_addr = i_state ? {icache_miss_address[15:4], addr_count << 1} : 
+                                      (icache_miss_detected ? {icache_miss_address[15:4], 4'h0} : {icache_miss_address[15:4], addr_count << 1});
+
+// TODO
+assign d_mem_addr = d_state ? {dcache_miss_address[15:4], addr_count << 1} : 
+                                      (dcache_miss_detected ? {dcache_miss_address[15:4], 4'h0} : {dcache_miss_address[15:4], addr_count << 1});
+
+assign memory_address = (i_state & d_state) ? d_mem_addr : i_state ? i_mem_addr : d_state ? d_mem_addr : 16'h0000;
+
+assign i_next_state   = i_state ? ((send_read[10] == 1'b1) ? 1'b0 : 1'b1) : ((icache_miss_detected & d_next_state == 1'b0)  ? 1'b1 : 1'b0);
+assign d_next_state   = d_state ? ((send_read[10] == 1'b1) ? 1'b0 : 1'b1) : ((dcache_miss_detected & addr_count == 3'h0) ? 1'b1 : 1'b0);
+
+assign icache_fsm_data_wen = i_state ? ((memory_data_valid & (send_read[10] != 1'b1)) ? 1'b1 : 1'b0) : 1'b0;
+assign dcache_fsm_data_wen = d_state ? ((memory_data_valid & (send_read[10] != 1'b1)) ? 1'b1 : 1'b0) : 1'b0;
+
+assign icache_fsm_tag_wen  = i_state ? ((send_read[10] == 1'b1) ? 1'b1 : 1'b0) : 1'b0;
+assign dcache_fsm_tag_wen  = d_state ? ((send_read[10] == 1'b1) ? 1'b1 : 1'b0) : 1'b0;
 
 endmodule
 
