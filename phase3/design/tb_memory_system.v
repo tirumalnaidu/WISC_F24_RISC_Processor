@@ -30,54 +30,67 @@ module tb_memory_system();
         .cache_miss_stall(cache_miss_stall)
       );
 
-    initial begin
-        clk = 0;
-        rst = 1;
-        
-        $dumpfile("tb_memory_system.vcd"); 
-        $dumpvars(0, tb_memory_system); 
-    end
-
-    always #10 begin
-        clk = ~clk;
-    end
-
-    task read_mem(input [AWIDTH-1:0] addr);
+    task read_mem(input [AWIDTH-1:0] addr, input miss);
     begin
         @(posedge clk);
         mem_en = 1'b1;
         mem_write = 1'b0;
         addr_in = addr;
+
+        if(miss) begin
+            @(negedge cache_miss_stall);
+        end   
+
+        repeat(3) @(posedge clk);
+
+        mem_en = 1'b0;
     end
     endtask
 
-    task write_mem(input [AWIDTH-1:0] addr, input [DWIDTH-1:0] data);
+    task write_mem(input [AWIDTH-1:0] addr, input [DWIDTH-1:0] data, input miss);
     begin
         @(posedge clk);
         mem_en = 1'b1;
         mem_write = 1'b1;
         addr_in = addr;
         data_in = data;
+
+        if(miss) begin
+            @(negedge cache_miss_stall);
+        end
+
+        repeat(3) @(posedge clk);
+
+        mem_en = 1'b0;
     end
     endtask
 
     initial begin
-        #20 
-        rst = 0;
+        clk <= 1;
+        $dumpfile("tb_memory_system.vcd"); 
+        $dumpvars(0, tb_memory_system); 
+
+        forever #10 clk <= ~clk;
+      end
+    
+    initial begin
+        rst = 1;  /* Intial reset state */
+        #21 rst = 0;  // delay until slightly after two clock periods
+    end
+
+      
+    initial begin
         mem_write = 0;
         mem_en = 0;
+        addr_in = 16'h0000;
+        data_in = 16'h0000;
+        #20;
 
-        read_mem(16'h0002);
-        //read_mem();
-        //read_mem();
+        write_mem(16'h0000, 16'hABCD, 1'b1);
 
-        //#10 
-        //mem_en = 1;
-        //mem_write = 1;
-        //addr_in = 16'h0000;
-        //data_in = 16'hABCD;
+        write_mem(16'h0100, 16'hFF00, 1'b1);
 
-        #200; 
+        read_mem(16'h0000, 1'b0);
 
         $finish;
     end

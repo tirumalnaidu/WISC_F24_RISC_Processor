@@ -60,8 +60,8 @@ wire [15:0] data_way1_out;              // 16-bit data output from way1
 wire [7:0] metadata_way0_out;           // 8-bit metadata output stored in way0
 wire [7:0] metadata_way1_out;           // 8-bit metadata output stored in way1
 
-wire [3:0] offset_cnt_in;         // 4-bit input to shift register used to calculate offset
-wire [3:0] offset_cnt_out;        // 4-bit output from shift register used to calculate offset
+wire [3:0] offset_cnt_in;               // next value of the offset counter
+wire [3:0] offset_cnt_out;              // current value of the offset counter
 
 wire [5:0]tag;                          // 6-bit tag
 wire [5:0]index;                        // 6-bit index
@@ -74,7 +74,7 @@ wire [3:0] offset;                  // correct value of offset
 // -------------------------------- Inputs to the modules --------------------------------
 assign tag = address_in[15:10];
 assign index = address_in[9:4];
-assign addr_offset = address_in[3:1];    // NOTE: using only the top-3 bits of the offset
+assign addr_offset = address_in[3:0];    // NOTE: using only the top-3 bits of the offset
 
 
 // ---- counter logic ----
@@ -88,7 +88,7 @@ pldff #(.WIDTH(4)) offset_counter (
 
 cla_adder_4bit cla_4(
 	.a_in(offset_cnt_out),
-	.b_in(4'b1),
+	.b_in(4'b0001),
 	.carry_in(1'b0),
 
 	.adder_out(offset_cnt_in),
@@ -124,61 +124,64 @@ assign LRU_way0_in = (tag_match_way0)? 1'b1 :
                      (tag_match_way1)? 1'b0 : LRU_way0_out;
 
 
-assign metadata_way0_in = (~miss_detected)? {metadata_way0_out[7:2], LRU_way0_in, 1'b1} : {tag, LRU_way0_in, 1'b1};
-assign metadata_way1_in = {tag, 1'bz, 1'b1};              // should the LRU bit be z or x
+assign metadata_way0_in = (~miss_detected)? {metadata_way0_out[7:2], 1'b1, LRU_way0_in} : {tag, 1'b1, LRU_way0_in};
+assign metadata_way1_in = {tag,  1'b1, 1'b0};              // should the LRU bit be z or x
 
 // -------------------------------- storage modules of cache.v --------------------------------
 
 // TODO : what happens on a store word hit ?
 
 // instantiate data_way_array0
-data_way_array_beh d0 (
+data_way_array d0 (
     .clk(clk),
     .rst(rst),
     .data_in(data_in),
-    .wen(((~miss_detected & wen) & tag_match_way0) | (fsm_data_wen & ~LRU_way0_out) /*check tag match on SW hit*/),
+    .wen(((~miss_detected & wen) & tag_match_way0) | (miss_detected & fsm_data_wen & ~LRU_way0_out & (wen | rden)) /*check tag match on SW hit*/),
     .set_enable(set_enable),
     .word_enable(word_enable),
     .data_out(data_way0_out)
+
 );
 
 // instantiate data_way_array1
-data_way_array_beh d1 (
+data_way_array d1 (
     .clk(clk),
     .rst(rst),
     .data_in(data_in),
-    .wen(((~miss_detected & wen) & tag_match_way1) | (fsm_data_wen & LRU_way0_out)),
+    .wen(((~miss_detected & wen) & tag_match_way1) | (miss_detected & fsm_data_wen & LRU_way0_out & (wen | rden))),
     .set_enable(set_enable),
     .word_enable(word_enable),
     .data_out(data_way1_out)
+
 );
 
-metadata_way_array_beh m0(
+metadata_way_array m0(
     .clk(clk),
-    .rst(clk),
+    .rst(rst),
     .data_in(metadata_way0_in),
-    .wen((~miss_detected & (wen | rden)) | fsm_tag_wen),
+    .wen((~miss_detected & (wen | rden)) |  (miss_detected & fsm_tag_wen)),
     .set_enable(set_enable),
     .data_out(metadata_way0_out)
 );
 
-metadata_way_array_beh m1(
+metadata_way_array m1(
     .clk(clk),
     .rst(rst),
     .data_in(metadata_way1_in),
-    .wen(((~miss_detected & wen) & tag_match_way1) | (fsm_tag_wen & LRU_way0_out)),
+    .wen((miss_detected  & (wen | rden) & fsm_tag_wen & LRU_way0_out)),
     .set_enable(set_enable),
     .data_out(metadata_way1_out)
 );
 
-assign miss_detected = (tag_match_way0 & tag_match_way1) ? 1'b0 : 1'b1;
+assign miss_detected = ( ~tag_match_way0 & ~tag_match_way1) ? 1'b1 : 1'b0;
 
+// miss address is always the 1st address of the data block
 assign miss_address =  {address_in[15:4], {4{1'b0}}};
 
 
 // output data only when LW & tag hit
 assign data_out =(~miss_detected & rden & tag_match_way0)? data_way0_out : 
-                 (~miss_detected & rden & tag_match_way1)? data_way1_out :  16'hzzzz;
+                 (~miss_detected & rden & tag_match_way1)? data_way1_out :  16'h0000;
 
 endmodule
 

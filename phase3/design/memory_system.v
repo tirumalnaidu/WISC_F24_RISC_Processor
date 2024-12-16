@@ -45,7 +45,7 @@ assign cache_data_in = (cache_miss_detected)? memory_data_out : data_in;
 
 
 assign cache_miss_stall = cache_miss_detected;
-assign data_out = (cache_mem_read & ~cache_miss_detected)? cache_data_out : 16'hzzzz;
+assign data_out = (cache_mem_read & ~cache_miss_detected)? cache_data_out : 16'h0000;
 
 assign cache_mem_read = mem_en & ~mem_write;
 assign cache_mem_write = mem_en & mem_write;
