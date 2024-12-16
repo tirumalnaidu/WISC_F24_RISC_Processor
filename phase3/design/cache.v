@@ -132,7 +132,7 @@ assign metadata_way1_in = {tag,  1'b1, 1'b0};              // should the LRU bit
 // TODO : what happens on a store word hit ?
 
 // instantiate data_way_array0
-data_way_array d0 (
+data_way_array_beh d0 (
     .clk(clk),
     .rst(rst),
     .data_in(data_in),
@@ -144,7 +144,7 @@ data_way_array d0 (
 );
 
 // instantiate data_way_array1
-data_way_array d1 (
+data_way_array_beh d1 (
     .clk(clk),
     .rst(rst),
     .data_in(data_in),
@@ -155,7 +155,7 @@ data_way_array d1 (
 
 );
 
-metadata_way_array m0(
+metadata_way_array_beh m0(
     .clk(clk),
     .rst(rst),
     .data_in(metadata_way0_in),
@@ -164,7 +164,7 @@ metadata_way_array m0(
     .data_out(metadata_way0_out)
 );
 
-metadata_way_array m1(
+metadata_way_array_beh m1(
     .clk(clk),
     .rst(rst),
     .data_in(metadata_way1_in),

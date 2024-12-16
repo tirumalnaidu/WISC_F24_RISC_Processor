@@ -55,7 +55,9 @@ wire fsm_busy;
 
 // on a cache hit : write to addr_in
 // on a cache miss : read from miss_address
-assign memory_addr_in = (icache_miss_detected | dcache_miss_detected) ? fsm_miss_address : 16'h0000;
+assign memory_addr_in = (icache_miss_detected | dcache_miss_detected) ? fsm_miss_address : (~dcache_miss_detected) ? data_addr_in: 16'h0000;
+
+
 
 assign dcache_data_in = (dcache_miss_detected)? memory_data_out : data_in;
 
@@ -77,7 +79,7 @@ memory4c #(.DWIDTH(DWIDTH),
     .data_in(data_in),                             // for SW instruction
     .addr(memory_addr_in),                         // output from fsm OR SW instruction
     .enable(mem_en),
-    .wr((mem_write & ~dcache_miss_detected) | ~icache_miss_detected),         // from the SW instruction
+    .wr((mem_write & ~dcache_miss_detected)),         // from the SW instruction
     .clk(clk),
     .rst(rst),
     /*OUT*/

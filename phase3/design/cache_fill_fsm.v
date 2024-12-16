@@ -23,6 +23,7 @@ wire start_count;
 // wire [3:0] byte_count, byte_count_next;
 wire [11:0] send_read;
 wire shift_reg_start;
+wire addr_dff_wen;
 
 wire [2:0] addr_count, addr_count_incr;
 
@@ -36,7 +37,8 @@ wire [2:0] addr_count, addr_count_incr;
 //                   .ovfl()
 // );
 
-assign shift_reg_start = ~d_next_state & (icache_miss_detected | dcache_miss_detected); 
+// TODO: need i_state too ?
+assign shift_reg_start = ~d_state & (icache_miss_detected | dcache_miss_detected); 
  
 shift_register #(.WIDTH(12)) 
                       shift_reg_inst(
@@ -59,10 +61,15 @@ cla_adder_4bit addr_incr(
 dff i_state_dff(.clk(clk), .rst(rst), .d(i_next_state), .q(i_state), .wen(1'b1));
 dff d_state_dff(.clk(clk), .rst(rst), .d(d_next_state), .q(d_state), .wen(1'b1));
 
-dff addr_dff[2:0](.clk(clk), .rst(rst), .d(addr_count_incr), .q(addr_count), .wen(dcache_miss_detected | icache_miss_detected));
+// TODO: need i_state here ?
+assign addr_dff_wen = d_state ? (addr_count != 4'b1000) : (icache_miss_detected | dcache_miss_detected) ? 1'b1 : 1'b0;
+
+dff addr_dff[2:0](.clk(clk), .rst(rst), .d(addr_count_incr), .q(addr_count), .wen(addr_dff_wen));
 
 
-//TODO:
+
+
+
 // if imiss before dmiss => consider dmiss
 // if i_state = 1 (busy) and we encounter a dcache_miss_detected = 1 -> 
 //        wait till send_read[7] == 1 and we can toggle d_next_state from 0 (idle) to 1 (busy)
@@ -73,11 +80,11 @@ dff addr_dff[2:0](.clk(clk), .rst(rst), .d(addr_count_incr), .q(addr_count), .we
 
 wire [15:0] i_mem_addr, d_mem_addr;
 
-// TODO
+// TODO: remove redundant conditions
 assign i_mem_addr = i_state ? {icache_miss_address[15:4], addr_count << 1} : 
                                       (icache_miss_detected ? {icache_miss_address[15:4], 4'h0} : {icache_miss_address[15:4], addr_count << 1});
 
-// TODO
+// TODO: remove redundant conditions
 assign d_mem_addr = d_state ? {dcache_miss_address[15:4], addr_count << 1} : 
                                       (dcache_miss_detected ? {dcache_miss_address[15:4], 4'h0} : {dcache_miss_address[15:4], addr_count << 1});
 
