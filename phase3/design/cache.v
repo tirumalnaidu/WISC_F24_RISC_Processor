@@ -174,7 +174,7 @@ metadata_way_array_beh m1(
 );
 
 //assign miss_detected = (~rden & ~wen)? 1'b0: ( ~tag_match_way0 & ~tag_match_way1) ? 1'b1 : 1'b0;
-assign miss_detected = (~tag_match_way0 & ~tag_match_way1) ? 1'b1 : 1'b0;
+assign miss_detected = ((rden | wen) & (~tag_match_way0 & ~tag_match_way1)) ? 1'b1 : 1'b0;
 
 // miss address is always the 1st address of the data block
 assign miss_address =  {address_in[15:4], {4{1'b0}}};

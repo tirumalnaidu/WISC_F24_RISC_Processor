@@ -39,6 +39,8 @@ module tb_memory_system();
     task i_read_mem(input [AWIDTH-1:0] addr, input miss);
     begin
         @(posedge clk);
+        mem_en = 1'b0;
+        mem_write = 1'b0;
         instr_addr_in = addr;
 
         if(miss) begin
@@ -106,14 +108,17 @@ module tb_memory_system();
         data_in = 16'h0000;
         #20;
 
-        // i_read_mem(16'h0000, 1'b1);
+        i_read_mem(16'h0010, 1'b1);
+        i_read_mem(16'h0012, 1'b0);
+        i_read_mem(16'h0014, 1'b0);
+        //i_read_mem(16'h0040, 1'b1);
 
-        d_write_mem(16'h0000, 16'hABCD, 1'b1);
-        d_write_mem(16'h0002, 16'h1234, 1'b0);
+        //d_write_mem(16'h0000, 16'hABCD, 1'b1);
+        //d_write_mem(16'h0002, 16'h1234, 1'b0);
 
-        d_write_mem(16'h0100, 16'hFF00, 1'b1);
+        //d_write_mem(16'h0100, 16'hFF00, 1'b1);
 
-        d_read_mem(16'h0000, 1'b0);
+        //d_read_mem(16'h0000, 1'b0);
 
         $finish;
     end
