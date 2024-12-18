@@ -148,6 +148,8 @@ wire control_stall;         // to : pc_if_stage mux -> on detecting a hazard, pc
 wire if_id_wen;                         // write enable to IF/ID pipeline register
 wire [15:0] pc_nxt;
 
+wire dcache_stall;
+wire icache_stall;
 
 // ############################################ IF ############################################
 
@@ -179,22 +181,22 @@ assign pc_if_stage = (if_id_flush)? pc_branch:
 pc_update pc_up(.clk(clk), 
                 .rst(rst), 
                 .pc_in(pc_if_stage), 
-                .pc_wen(~stall | ~if_id_flush),     // stall & flush are never generated together
+                .pc_wen((~stall | ~if_id_flush) & ~icache_stall & ~dcache_stall),     // stall & flush are never generated together
                                                     // on stall -> pc gives out the same old pc           
                 // OUT
                 .pc_out(pc_cur)
                 ); 
 
-memory1c_instr #(   .DWIDTH(DWIDTH), 
-                    .AWIDTH(AWIDTH)
-                ) imem (.data_out(instr), 
-                        .data_in(/*unconnected*/), 
-                        .addr(pc_cur), 
-                        .enable(1'b1), 
-                        .wr(1'b0), 
-                        .clk(clk), 
-                        .rst(rst)
-                        );
+// memory1c_instr #(   .DWIDTH(DWIDTH), 
+//                     .AWIDTH(AWIDTH)
+//                 ) imem (.data_out(instr), 
+//                         .data_in(/*unconnected*/), 
+//                         .addr(pc_cur), 
+//                         .enable(1'b1), 
+//                         .wr(1'b0), 
+//                         .clk(clk), 
+//                         .rst(rst)
+//                         );
 
 // Current PC as output
 assign pc = pc_cur;
@@ -209,7 +211,7 @@ assign pc = pc_cur;
 if_id_pipe  if_id_pipe_inst (
     .clk(clk),
     .rst(rst),        
-    .en(~stall),                                // wen=0, when stall condition
+    .en(~stall & ~icache_stall & ~dcache_stall),                                // wen=0, when stall condition
     .flush_in(if_id_flush),
     .in_instr(instr),
     .in_pc_nxt(pc_if_stage),
@@ -330,7 +332,8 @@ assign sign_ext_imm = (mem_read | mem_write) ? ({{12{1'b0}}, if_id_instr[3:0]} <
 id_ex_pipe  id_ex_pipe_inst (
     .clk(clk),
     .rst(rst | stall), //DONE: flush - use the flush propagated from if_id_stage (need to add)
-    .en(1'b1), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
+    .control_clr(icache_stall),
+    .en(~dcache_stall), //TODO: stall - generated from load-to-use and branch-based stalls (Check Ex 10/15 conditions-1 & 2)
 
     // IN - Control
     .in_mem_read(mem_read),
@@ -461,7 +464,7 @@ dff ff2(.q(flag_reg_out[2]), .d(flag[2]), .wen(id_ex_flag_en[2]), .clk(clk), .rs
 ex_mem_pipe  ex_mem_pipe_inst (
     .clk(clk),
     .rst(rst),  //DONE: flush - use the flush propagated from id_ex_stage (need to add)
-    .en(1'b1),    //TODO: stall - No stall needed from here on?
+    .en(~dcache_stall),    //TODO: stall - No stall needed from here on?
     
     // IN - Control
     .in_mem_read(id_ex_mem_read),
@@ -521,16 +524,44 @@ ex_mem_pipe  ex_mem_pipe_inst (
 assign mem_enable = ex_mem_mem_write | ex_mem_mem_read;
 assign forwardMEM_data = (forward_MEM)? dst_data: ex_mem_src2_data;
 
-memory1c_data #(.DWIDTH(DWIDTH), 
-                .AWIDTH(AWIDTH)
-                ) data_mem (.data_out(mem_data),
-                        .data_in(forwardMEM_data),
-                        .addr(ex_mem_alu_out),
-                        .enable(mem_enable),
-                        .wr(ex_mem_mem_write),
-                        .clk(clk),
-                        .rst(rst)
-                        );
+// memory1c_data #(.DWIDTH(DWIDTH), 
+//                 .AWIDTH(AWIDTH)
+//                 ) data_mem (.data_out(mem_data),
+//                         .data_in(forwardMEM_data),
+//                         .addr(ex_mem_alu_out),
+//                         .enable(mem_enable),
+//                         .wr(ex_mem_mem_write),
+//                         .clk(clk),
+//                         .rst(rst)
+//                         );
+
+// memory1c_instr #(   .DWIDTH(DWIDTH), 
+//                     .AWIDTH(AWIDTH)
+//                 ) imem (.data_out(instr), 
+//                         .data_in(/*unconnected*/), 
+//                         .addr(pc_cur), 
+//                         .enable(1'b1), 
+//                         .wr(1'b0), 
+//                         .clk(clk), 
+//                         .rst(rst)
+//                         );
+
+
+memory memory_inst (
+    .clk(clk),
+    .rst(rst),
+    .data_in(forwardMEM_data), // 2 byte data input port
+    .wen(ex_mem_mem_write),
+    .i_addr(pc_cur),
+    .d_addr(ex_mem_alu_out), //address input port
+    .i_read_en(1'b1), 
+    .d_read_en(mem_enable),
+    .d_data_out(mem_data),
+    .i_data_out(instr),
+    .d_stall(dcache_stall), 
+    .i_stall(icache_stall)
+);
+
 // ---------------------------
 
 // ############################################ MEM-WB Pipeline ############################################
@@ -539,7 +570,7 @@ memory1c_data #(.DWIDTH(DWIDTH),
 mem_wb_pipe  mem_wb_pipe_inst (
     .clk(clk),
     .rst(rst),  // Flush - needs to propagate from previous stage - ex_mem_pipe
-    .en(1'b1),    // Stall - no need right? (never stalls)
+    .en(~dcache_stall),    // Stall - no need right? (never stalls)
 
     // IN - Control
     .in_mem_to_reg(ex_mem_mem_to_reg),
