@@ -1,4 +1,5 @@
 // WISC Trace P2 - CPU Stats & Logging
+`timescale 1ns/1ns;
 
 module wisc_trace_p3 #(
     parameter ARCH_WIDTH = 16,
@@ -58,6 +59,7 @@ module wisc_trace_p3 #(
 
   always @(posedge clk) begin
     if (!rst) begin
+
       clocks_since_reset <= clocks_since_reset + 1;
       if (Halt || RegWrite || MemWrite) begin
         inst_count <= inst_count + 1;
@@ -100,8 +102,8 @@ module wisc_trace_p3 #(
         $fdisplay(sim_log_file, "SIMLOG:: icache_hit_count %d\n", icache_hit_count);
         $fdisplay(sim_log_file, "SIMLOG:: dcache_req_count %d\n", dcache_req_count);
         $fdisplay(sim_log_file, "SIMLOG:: dcache_hit_count %d\n", dcache_hit_count);
-
-        $writememh("dumpfile_data.img", DUT.dmem.mem);
+          $display("enter halt");
+        // $writememh("dumpfile_data.img", DUT.dmem.mem);
 
         $fclose(trace_file);
         $fclose(sim_log_file);

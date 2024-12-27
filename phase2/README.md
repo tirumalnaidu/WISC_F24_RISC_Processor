@@ -1,53 +1,69 @@
 ### File Hierarchy
 ---
 ```bash
-phase1
+phase2
 ├── WISC-assembler
-│   ├── README                # Instructions on how to run assembler.pl
-│   ├── assembler.pl          # Perl script to assemble text-level test cases into machine code
-│   └── sample                # Sample files for the assembler
-├── design                    # Your Verilog design files go here
-│   ├── cpu.v                
-│   ├── cla.v                
-│   ├── reduction_cla.v                
-│   ├── register_file.v                
-│   └── shifter.v                
+│   ├── README
+│   ├── assembler.pl
+│   └── sample
+├── design
+│   ├── a.out
+│   ├── alu_16bit.v
+│   ├── bit_cell.v
+│   ├── common
+│   │   ├── addsub_16bit.v
+│   │   ├── cla_adder_4bit.v
+│   │   ├── dff.v
+│   │   ├── flags.vh
+│   │   ├── loadfile_data.img
+│   │   ├── loadfile_instr.img
+│   │   ├── memory1c_data.v
+│   │   ├── memory1c_instr.v
+│   │   ├── pldff.v
+│   │   ├── ror_func.v
+│   │   ├── sll_func.v
+│   │   └── sra_func.v
+│   ├── control_unit.v
+│   ├── cpu.v
+│   ├── ex_mem_pipe.v
+│   ├── forward_unit.v
+│   ├── hazard_unit.v
+│   ├── id_ex_pipe.v
+│   ├── if_id_pipe.v
+│   ├── mem_wb_pipe.v
+│   ├── paddsub_16bit.v
+│   ├── pc_control.v
+│   ├── pc_update.v
+│   ├── read_decoder_4_16.v
+│   ├── red_16bit.v
+│   ├── register.v
+│   ├── register_file.v
+│   ├── shifter.v
+│   ├── write_decoder_4_16.v
+│   └── xor_16bit.v
 ├── dv
-│   ├── phase1_cpu_tb.v       # Testbench file, use this and modify as needed
+│   ├── phase2_cpu_tb.v
+│   └── wisc_trace_p2.v
 ├── ip
-│   ├── dff.v                 # D flip-flop to use in your design
+│   ├── dff.v
 │   ├── dv
-│   │   ├── dff_tb.v          # Testbench for D flip-flop
-│   │   └── memory1c_tb.v     # Testbench for memory
-│   ├── memory1c.readme.txt   # Instructions for the memory1c module
-│   ├── memory1c_data.v       # Use this module for Data Memory
-│   └── memory1c_instr.v      # Use this module for Instruction Memory
+│   │   ├── dff_tb.v
+│   │   ├── memory1c_tb.v
+│   │   └── pldff_tb.v
+│   ├── memory1c.readme.txt
+│   ├── memory1c_data.v
+│   ├── memory1c_instr.v
+│   ├── pldff.v
+│   └── run.sh
 ├── sim
-│   └── run.sh                # Example script to run a test using Icarus Verilog
-└── testcases                 # Testcases for the processor. Ensure these work correctly
+│   ├── a.out
+│   ├── dump.vcd
+│   ├── dumpfile_data.img
+│   ├── loadfile_data.img
+│   ├── loadfile_instr.img
+│   └── run.sh
+└── testcases
     ├── test1.list
     ├── test2.list
     └── test3.list
-```
 
-### Module Hierarchy
----
-``` bash
-cpu 
-├── alu                 - yash
-│    ├── addsub
-│    │   └── cla        
-│    ├── paddsub        
-│    │   └── cla
-│    ├── reduction_cla  
-│    │   └── cla
-│    ├── xor            
-│    └── shifter        - DONE
-├── register_file       - DONE
-├── sign_extend         - DONE
-├── control             - tirumal
-├── alu_control         - tirumal
-├── pc_control          - balaji
-├── memory1c_data       - DONE
-└── memory1c_inst       - DONE
-```

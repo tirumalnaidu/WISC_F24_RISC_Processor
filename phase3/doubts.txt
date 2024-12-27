@@ -1,4 +1,0 @@
-TODO 
-
-1. offset values being generated correctly based on miss_detected
-2. based on the offset, shifter generates the correct 3:8 value

@@ -34,7 +34,7 @@ wire [7:0] metadata_output_way1;
 wire metadata_write_enable_way0;
 wire metadata_write_enable_way1;
 
-data_way_array_beh dataWay0 (
+data_way_array dataWay0 (
     .clk(clk),
     .rst(rst),
     .data_in(data_in),
@@ -44,7 +44,7 @@ data_way_array_beh dataWay0 (
     .data_out(data_output_way0)
 );
 
-data_way_array_beh dataWay1 (
+data_way_array dataWay1 (
     .clk(clk),
     .rst(rst),
     .data_in(data_in),
@@ -54,7 +54,7 @@ data_way_array_beh dataWay1 (
     .data_out(data_output_way1)
 );
 
-metadata_way_array_beh metaDataWay0 (
+metadata_way_array metaDataWay0 (
     .clk(clk),
     .rst(rst),
     .data_in(metadata_input_way0),
@@ -63,7 +63,7 @@ metadata_way_array_beh metaDataWay0 (
     .data_out(metadata_output_way0)
 );
 
-metadata_way_array_beh metaDataWay1 (
+metadata_way_array metaDataWay1 (
     .clk(clk),
     .rst(rst),
     .data_in(metadata_input_way1),

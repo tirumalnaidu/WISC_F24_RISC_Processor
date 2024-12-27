@@ -29,25 +29,3 @@ phase1
     ├── test2.list
     └── test3.list
 ```
-
-### Module Hierarchy
----
-``` bash
-cpu 
-├── alu                 - yash
-│    ├── addsub
-│    │   └── cla        
-│    ├── paddsub        
-│    │   └── cla
-│    ├── reduction_cla  
-│    │   └── cla
-│    ├── xor            
-│    └── shifter        - DONE
-├── register_file       - DONE
-├── sign_extend         - DONE
-├── control             - tirumal
-├── alu_control         - tirumal
-├── pc_control          - balaji
-├── memory1c_data       - DONE
-└── memory1c_inst       - DONE
-```

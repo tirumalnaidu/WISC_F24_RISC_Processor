@@ -17,7 +17,7 @@ perl $BASE/WISC-assembler/assembler.pl $LIST > loadfile_instr.img
 touch loadfile_data.img # empty data memory image
 
 # This is for Icarus Verilog
-iverilog -g2012 -I $BASE/design -Y .sv -Y .v -Y .vh -y $BASE/dv -y $BASE/design -y $BASE/ip $BASE/dv/phase2_cpu_tb.v && vvp a.out -fst
+iverilog -g2001 $BASE/dv/wisc_trace_p3.v $BASE/dv/phase3_cpu_tb.v $BASE/ip/dv/data_way_array_beh.v $BASE/ip/dv/metadata_way_array_beh.v $BASE/ip/memory4c.v $BASE/design/common/flags.vh $BASE/design/common/*.v $BASE/design/pipelines/*.v $BASE/design/alu_ops/*.v $BASE/design/register_file/*.v $BASE/design/*.v -g2005-sv -v && vvp a.out
 
 mv verilogsim.log $TEST.log
 mv verilogsim.trace $TEST.trace

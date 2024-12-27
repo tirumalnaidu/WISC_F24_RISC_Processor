@@ -56,7 +56,7 @@ module memory4c #(
     if (rst) begin
       //load loadfile_all.img
       if (!loaded) begin
-        $readmemh("loadfile_data.img", mem);
+        $readmemh("loadfile_instr.img", mem);
         loaded <= 1;
       end
     end else begin
